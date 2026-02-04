@@ -1,4 +1,4 @@
-# Paddy Yield Risk Early Warning (Enterprise Analytics Project)
+# Paddy Yield Risk Early Warning
 
 ## Overview
 This project builds an **early warning system** that classifies paddy cultivation cases into **High-Risk vs Low-Risk yield outcomes**.
