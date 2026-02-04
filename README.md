@@ -8,7 +8,6 @@ Instead of predicting yield as a continuous value, we reframe the problem as a *
 This project is inspired by:
 *Muthukumaran et al. (2023), “A Hybrid Machine Learning Model with Combined Wrapper Feature Selection Techniques to Improve the Yield of Paddy”*.
 
----
 
 ## Business Context (Why this matters)
 Agricultural decision-makers (farmers, cooperatives, or government agencies) often have limited resources for support (fertilizer guidance,
@@ -16,7 +15,6 @@ irrigation planning, pest control). A numeric yield prediction is less useful if
 
 **Enterprise goal:** Identify **high-risk cases early** to prioritize interventions that prevent low yield outcomes.
 
----
 
 ## Project Goal
 Develop an end-to-end ML pipeline that:
@@ -24,7 +22,6 @@ Develop an end-to-end ML pipeline that:
 2. Trains and compares ML models to predict **High-Risk vs Low-Risk**
 3. Explains key risk drivers to support decision-making
 
----
 
 ## Hypothesis
 **Primary hypothesis:**
@@ -33,7 +30,6 @@ Develop an end-to-end ML pipeline that:
 **Supporting hypothesis:**
 > Early-season agronomic and climatic variables are sufficient to detect yield risk prior to harvest, enabling proactive intervention.
 
----
 
 ## Data
 - Input: agronomic practices, soil conditions, climatic variables (as available in the provided paddy dataset)
@@ -46,7 +42,6 @@ We derive a binary risk label from the yield distribution:
 
 The threshold is configurable and will be justified based on class balance and business interpretation.
 
----
 
 ## Methods (End-to-End ML Lifecycle)
 ### 1) Data preparation
@@ -77,7 +72,6 @@ We report:
 - Key drivers of high-risk prediction
 - Actionable insights (what variables are early warning signals)
 
----
 
 ## Repository Structure
 - `data/` raw and processed datasets
@@ -86,4 +80,3 @@ We report:
 - `results/` saved figures, tables, and a short summary
 - `presentation/` pitch deck / PDF slides
 
----
