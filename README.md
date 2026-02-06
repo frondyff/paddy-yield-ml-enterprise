@@ -1,82 +1,131 @@
-# Paddy Yield Risk Early Warning
+#  Paddy Yield Decision Support Using Enterprise Machine Learning
 
-## Overview
-This project builds an **early warning system** that classifies paddy cultivation cases into **High-Risk vs Low-Risk yield outcomes**.
-Instead of predicting yield as a continuous value, we reframe the problem as a **risk detection** task to support actionable decision-making
-(e.g., which farms/areas should receive intervention first).
-
-This project is inspired by:
-*Muthukumaran et al. (2023), “A Hybrid Machine Learning Model with Combined Wrapper Feature Selection Techniques to Improve the Yield of Paddy”*.
+McGill MMA – Enterprise Analytics Group Project
 
 
-## Business Context
-Agricultural decision-makers (farmers, cooperatives, or government agencies) often have limited resources for support (fertilizer guidance,
-irrigation planning, pest control). A numeric yield prediction is less useful if it does not tell **where to intervene first**.
+## 1. Enterprise Context
 
-**Enterprise goal:** Identify **high-risk cases early** to prioritize interventions that prevent low yield outcomes.
+Modern agricultural enterprises—such as cooperatives, agribusiness firms, and government agencies—face increasing pressure to:
+- Improve crop yield predictability  
+- Optimize resource usage (fertilizer, land, seed varieties)  
+- Make data-driven decisions under environmental uncertainty  
 
-
-## Project Goal
-Develop an end-to-end ML pipeline that:
-1. Creates a **Yield Risk** label from historical yield outcomes
-2. Trains and compares ML models to predict **High-Risk vs Low-Risk**
-3. Explains key risk drivers to support decision-making
-
-
-## Hypothesis
-**Primary hypothesis:**
-> Reframing paddy yield prediction as a yield-risk classification problem enables more actionable and cost-effective decision-making than direct yield estimation, while maintaining strong predictive performance using a reduced and interpretable feature set.
-
-**Supporting hypothesis:**
-> Early-season agronomic and climatic variables are sufficient to detect yield risk prior to harvest, enabling proactive intervention.
+Despite the growing availability of agronomic data, many farming decisions remain:
+- Fragmented across stakeholders  
+- Heavily experience-based  
+- Poorly supported by interpretable and reproducible machine learning systems  
+This project addresses this gap by designing an **enterprise ML decision-support pipeline**, rather than a standalone prediction model.
 
 
-## Data
-- Input: agronomic practices, soil conditions, climatic variables (as available in the provided paddy dataset)
-- Target (derived): `Yield_Risk` (binary)
+## 2. Data Context
 
-### Label Definition (Yield Risk)
-We derive a binary risk label from the yield distribution:
-- **High-Risk**: bottom *X%* of yield values (e.g., bottom 25%)
-- **Low-Risk**: remaining yield values
+This project uses the **UCI Paddy Dataset**, a real-world agricultural dataset containing:
 
-The threshold is configurable and will be justified based on class balance and business interpretation.
+- Cultivation practices  
+- Fertilizer usage  
+- Environmental conditions  
+- Paddy varieties  
+- Observed yield outcomes  
+
+From an enterprise analytics perspective, the dataset exhibits:
+- Tabular and heterogeneous features  
+- Observational correlations rather than verified causal relationships  
+- Strong need for feature engineering, explainability, and governance  
+
+These characteristics closely resemble real enterprise data environments.
+---
+
+## 3. Business Problem Statement
+
+**How can an enterprise leverage historical agronomic data to support better farming decisions by identifying key yield drivers and generating interpretable insights, while remaining reproducible, explainable, and production-ready?**
+
+This framing aligns with:
+- The end-to-end machine learning lifecycle  
+- Enterprise analytics best practices  
+- Explainability and trust requirements emphasized in the course  
+---
+
+## 4. Project Objectives
+
+The objectives of this project are to:
+1. Explore and understand the distribution and key drivers of paddy yield  
+2. Apply feature engineering and selection to improve model stability and generalization  
+3. Compare machine learning models with different accuracy–interpretability trade-offs  
+4. Extract interpretable insights that can inform practical farming decisions  
+---
+
+## 5. Research Hypotheses
+
+### Hypothesis 1 — Feature Engineering & Selection  
+Hybrid feature selection methods will outperform models trained on the full raw feature set in terms of predictive performance and generalization.
+
+### Hypothesis 2 — Model Choice vs Interpretability  
+Tree-based ensemble models (e.g., Random Forest, Gradient Boosting) provide a better balance between predictive performance and interpretability than linear or distance-based models for paddy yield prediction.
+
+### Hypothesis 3 — Actionability of ML Outputs  
+Interpretable machine learning models can extract actionable decision rules that meaningfully relate cultivation practices (e.g., fertilizer usage, variety selection) to yield outcomes.
+
+## 6. Exploratory Data Analysis (EDA)
+
+Initial exploratory data analysis focuses on:
+
+- Distribution of paddy yield and variability across observations  
+- Identification of agronomic and environmental features strongly associated with yield  
+- Correlation analysis to inform feature engineering and selection  
+
+The EDA provides an empirical foundation for subsequent modeling while avoiding causal over-interpretation.
 
 
-## Methods (End-to-End ML Lifecycle)
-### 1) Data preparation
-- Missing value handling
-- Encoding categorical variables (if any)
-- Train/test split
+## 7. Repository Structure
+paddy-yield-decision-support/
+│
+├── README.md                         ← enterprise context & hypotheses
+│
+├── data/
+│   ├── raw/
+│   │   └── paddydataset.csv          ← current
+│   └── processed/                   ← planned
+│
+├── notebooks/
+│   ├── 01_initial_eda.ipynb          ← current
+│   ├── 02_feature_engineering.ipynb  ← planned
+│   ├── 03_model_training.ipynb       ← planned
+│   └── 04_model_evaluation.ipynb     ← planned
+│
+├── src/                              ← planned
+│   ├── preprocessing.py
+│   ├── feature_selection.py
+│   ├── models.py
+│   └── evaluation.py
+│
+├── results/                          ← planned
+│   ├── figures/
+│   ├── tables/
+│   └── summary.md
+│
+└── presentation/
+    └── proposal_slides.pdf           
 
-### 2) Feature selection (interpretability + generalization)
-We evaluate feature selection strategies (inspired by the paper’s emphasis on dimensionality reduction), such as:
-- Wrapper or model-based selection (e.g., RF importance, RFE)
-- (Optional) comparison of multiple selection methods
+The structure reflects current progress (EDA completed) and planned extension along the full enterprise ML lifecycle.
 
-### 3) Modeling
-Baseline + improved models:
-- Logistic Regression (baseline, interpretable)
-- Random Forest (robust nonlinear model)
-- (Optional) Gradient Boosting / XGBoost
+## 8. Current Status
 
-### 4) Evaluation
-We focus on metrics that matter for **risk detection**:
-- Recall for the **High-Risk** class (avoid missed interventions)
-- Precision for the **High-Risk** class (avoid wasted interventions)
-- F1-score, confusion matrix, ROC-AUC
+- Enterprise context and business framing finalized  
+- Research hypotheses defined  
+- Initial EDA completed  
+- Feature engineering and modeling in progress  
 
-### 5) Explainability
-We report:
-- Feature importance / coefficients
-- Key drivers of high-risk prediction
-- Actionable insights (what variables are early warning signals)
+## 9. Team
 
+- Abdelaziz Ahmed
+- Frondy Ferdianto
+- Hazel Guan
+- Muhammad Hydarali
+- Simmi Agnihotram 
 
-## Repository Structure
-- `data/` raw and processed datasets
-- `notebooks/` end-to-end workflow (numbered)
-- `src/` reusable functions for preprocessing, labeling, training, evaluation
-- `results/` saved figures, tables, and a short summary
-- `presentation/` pitch deck / PDF slides
+## 10. Expected Outcomes
 
+- A reproducible end-to-end ML pipeline  
+- Clear comparison of feature selection and model strategies  
+- Interpretable insights linking agronomic practices to yield outcomes  
+- Practical guidance suitable for enterprise decision support  
