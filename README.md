@@ -77,36 +77,11 @@ The EDA provides an empirical foundation for subsequent modeling while avoiding 
 
 
 ## 7. Repository Structure
-paddy-yield-decision-support/
-│
-├── README.md                        
-│
-├── data/
-│   ├── raw/
-│   │   └── paddydataset.csv          
-│   └── processed/                  
-│
-├── notebooks/
-│   ├── 01_initial_eda.ipynb    (Current)      
-│   ├── 02_feature_engineering.ipynb  
-│   ├── 03_model_training.ipynb       
-│   └── 04_model_evaluation.ipynb    
-│
-├── src/                              
-│   ├── preprocessing.py
-│   ├── feature_selection.py
-│   ├── models.py
-│   └── evaluation.py
-│
-├── results/                         
-│   ├── figures/
-│   ├── tables/
-│   └── summary.md
-│
-└── presentation/
-    └── proposal_slides.pdf           
-
-The structure reflects current progress (EDA completed) and planned extension along the full enterprise ML lifecycle.
+data/          Raw and processed datasets
+notebooks/     EDA, feature engineering, modeling, and evaluation
+src/           Reusable preprocessing and modeling code
+results/       Figures, tables, and summarized findings
+presentation/  Proposal and final presentation slides
 
 ## 8. Current Status
 
