@@ -86,7 +86,7 @@ python scripts/run_ablation_eval.py --run-tag weather_location_ablation
 python scripts/run_interpretability_report.py --run-tag milestone_interpretability_v1
 ```
 
-For a student-friendly walkthrough of script intent and results, see:
+For a walkthrough of script intent and results, see:
 - `scripts/README.md`
 
 ## Quality and automation
