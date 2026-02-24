@@ -37,6 +37,7 @@ except NameError:
 DATA_PATH = project_root / "data" / "input" / "paddydataset.csv"
 DICT_PATH = project_root / "data" / "metadata" / "data_dictionary_paddy.csv"
 OUT_DIR = project_root / "outputs" / "feature_prepare"
+PIPELINE_VERSION = "fe-pipeline-minor-1"
 
 RAW_TARGET_COL = "Paddy yield(in Kg)"
 TARGET_COL = "Paddy yield_per_hectare(in Kg)"
@@ -1633,6 +1634,7 @@ def main() -> None:
         raise FileNotFoundError(f"Missing data dictionary: {DICT_PATH}")
 
     OUT_DIR.mkdir(parents=True, exist_ok=True)
+    print(f"Running feature_prepare pipeline ({PIPELINE_VERSION})")
 
     raw_df = pd.read_csv(DATA_PATH)
     raw_df.columns = clean_columns(raw_df.columns)
