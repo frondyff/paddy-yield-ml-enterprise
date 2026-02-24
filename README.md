@@ -12,11 +12,9 @@ Agricultural organizations need reliable yield forecasting and resource planning
 
 ## Core pipelines
 - `src/paddy_yield_ml/pipelines/baseline.py`
-  - renamed from `Group Assignment/processin_exploration.py`
-  - logic preserved; only project path updates
+
 - `src/paddy_yield_ml/pipelines/feature_prepare.py`
-  - renamed from `Group Assignment/processin_exploration_v3.py`
-  - logic preserved; only project path updates
+
 
 ## Data and outputs
 - Inputs:
