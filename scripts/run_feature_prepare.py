@@ -8,8 +8,12 @@ SRC_DIR = PROJECT_ROOT / "src"
 if str(SRC_DIR) not in sys.path:
     sys.path.insert(0, str(SRC_DIR))
 
-from paddy_yield_ml.pipelines.feature_prepare import main
+
+def run() -> None:
+    from paddy_yield_ml.pipelines.feature_prepare import main
+
+    main()
 
 
 if __name__ == "__main__":
-    main()
+    run()

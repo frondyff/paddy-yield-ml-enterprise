@@ -10,4 +10,3 @@ def test_clean_columns_trims_and_compacts_double_spaces() -> None:
 def test_baseline_paths_point_to_clean_project_layout() -> None:
     assert baseline.DATA_PATH.as_posix().endswith("data/input/paddydataset.csv")
     assert baseline.OUT_DIR.as_posix().endswith("outputs/baseline")
-

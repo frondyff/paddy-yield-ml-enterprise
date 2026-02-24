@@ -20,10 +20,10 @@ test:
 	$(UV) run pytest
 
 lint:
-	$(UV) run ruff check .
+	$(UV) run ruff check src tests scripts
 
 format:
-	$(UV) run ruff format .
+	$(UV) run ruff format src tests scripts
 
 typecheck:
 	$(UV) run ty check src tests

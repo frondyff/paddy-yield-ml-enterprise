@@ -52,7 +52,7 @@ TARGET_COL = "Paddy yield_per_hectare(in Kg)"
 def clean_columns(cols: list[str]) -> list[str]:
     # Normalize headers so downstream column lookups are stable.
     # Reason: real-world CSV headers often contain accidental spacing differences.
-    return [c.strip().replace("  ", " ") for c in cols]
+    return [" ".join(c.strip().split()) for c in cols]
 
 
 def main() -> None:
@@ -193,7 +193,7 @@ def main() -> None:
             # Cluster sizes indicate whether segments are balanced or dominated by one group.
             vals, counts = np.unique(best_labels, return_counts=True)
             print(f"\nBest k by silhouette: {best_k} (score {best_sil:.4f})")
-            for v, c in zip(vals, counts):
+            for v, c in zip(vals, counts, strict=False):
                 print(f"  cluster {v}: {c} rows")
 
             # Profile clusters using high-variance numeric features because they best
@@ -414,7 +414,7 @@ def main() -> None:
 
         # Report each group's metrics plus mean/std to summarize variability.
         print("\nLeave-one-Agriblock-out metrics:")
-        for g, m, r, r2 in zip(group_names, maes, rmses, r2s):
+        for g, m, r, r2 in zip(group_names, maes, rmses, r2s, strict=False):
             print(f"  {g}: MAE {m:,.2f} | RMSE {r:,.2f} | R^2 {r2:.4f}")
         print(
             f"  Mean: MAE {np.mean(maes):,.2f} | RMSE {np.mean(rmses):,.2f} | R^2 {np.mean(r2s):.4f}"
