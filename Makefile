@@ -1,6 +1,6 @@
 UV ?= uv
 
-.PHONY: sync install lock run-baseline run-feature-prepare test lint format typecheck verify clean
+.PHONY: sync install lock run-baseline run-feature-prepare run-model-compare test lint format typecheck verify clean
 
 sync:
 	$(UV) sync --all-groups
@@ -15,6 +15,9 @@ run-baseline:
 
 run-feature-prepare:
 	$(UV) run python src/paddy_yield_ml/pipelines/feature_prepare.py
+
+run-model-compare:
+	$(UV) run python src/paddy_yield_ml/pipelines/model_compare.py
 
 test:
 	$(UV) run pytest

@@ -15,6 +15,8 @@ Agricultural organizations need reliable yield forecasting and resource planning
 
 - `src/paddy_yield_ml/pipelines/feature_prepare.py`
 
+- `src/paddy_yield_ml/pipelines/model_compare.py`
+
 
 ## Data and outputs
 - Inputs:
@@ -45,12 +47,14 @@ paddy-yield-ml-enterprise/
 uv sync --all-groups
 uv run python src/paddy_yield_ml/pipelines/baseline.py
 uv run python src/paddy_yield_ml/pipelines/feature_prepare.py
+uv run python src/paddy_yield_ml/pipelines/model_compare.py
 ```
 
 Wrappers:
 ```bash
 python scripts/run_baseline.py
 python scripts/run_feature_prepare.py
+python scripts/run_model_compare.py
 ```
 
 ## Quality and automation
