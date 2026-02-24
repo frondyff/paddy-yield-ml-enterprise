@@ -12,6 +12,8 @@ Outputs (under ./outputs/model_select_tune/<run-tag>/):
   - tuned_groupkfold_summary.csv
   - logo_fold_metrics.csv
   - logo_summary.csv
+  - secondary_split_fold_metrics.csv
+  - secondary_split_summary.csv
 """
 
 from __future__ import annotations
@@ -26,7 +28,13 @@ import numpy as np
 import pandas as pd
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
-from sklearn.model_selection import GroupKFold, LeaveOneGroupOut, ParameterSampler
+from sklearn.model_selection import (
+    GroupKFold,
+    GroupShuffleSplit,
+    LeaveOneGroupOut,
+    ParameterSampler,
+    ShuffleSplit,
+)
 from sklearn.pipeline import Pipeline
 
 from paddy_yield_ml.pipelines import model_compare as mc
@@ -281,6 +289,162 @@ def evaluate_logo(
     return pd.DataFrame(fold_rows), summary
 
 
+def evaluate_secondary_splits(
+    frame: pd.DataFrame,
+    feature_set_name: str,
+    features: list[str],
+    model_key: str,
+    params: dict[str, Any],
+    random_state: int,
+    group_shuffle_splits: int,
+    random_shuffle_splits: int,
+    test_size: float,
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    x, y, groups = _prepare_xy(frame, features)
+    if len(x) < 10:
+        raise ValueError("Need at least 10 rows for secondary split benchmarks.")
+
+    fold_rows: list[dict] = []
+    summary_rows: list[dict] = []
+
+    # Secondary benchmark 1: seen-group generalization (group-aware shuffled holdouts).
+    gss_splits = min(group_shuffle_splits, max(2, groups.nunique()))
+    gss = GroupShuffleSplit(
+        n_splits=gss_splits,
+        test_size=test_size,
+        random_state=random_state,
+    )
+    maes_g: list[float] = []
+    rmses_g: list[float] = []
+    r2s_g: list[float] = []
+    runtimes_g: list[float] = []
+    for fold_idx, (train_idx, test_idx) in enumerate(gss.split(x, y, groups), start=1):
+        x_train = x.iloc[train_idx].copy()
+        x_test = x.iloc[test_idx].copy()
+        y_train = y.iloc[train_idx]
+        y_test = y.iloc[test_idx]
+
+        pipeline = Pipeline(
+            [
+                ("preprocess", mc.make_preprocessor(x_train)),
+                ("model", _build_model(model_key, params=params, random_state=random_state)),
+            ]
+        )
+        t0 = time.perf_counter()
+        pipeline.fit(x_train, y_train)
+        preds = pipeline.predict(x_test)
+        runtime_s = float(time.perf_counter() - t0)
+
+        mae = float(mean_absolute_error(y_test, preds))
+        rmse = float(np.sqrt(mean_squared_error(y_test, preds)))
+        r2 = float(r2_score(y_test, preds))
+
+        maes_g.append(mae)
+        rmses_g.append(rmse)
+        r2s_g.append(r2)
+        runtimes_g.append(runtime_s)
+        fold_rows.append(
+            {
+                "evaluation_scheme": "group_shuffle",
+                "feature_set": feature_set_name,
+                "model": model_key,
+                "fold": fold_idx,
+                "n_train": int(len(train_idx)),
+                "n_test": int(len(test_idx)),
+                "mae": mae,
+                "rmse": rmse,
+                "r2": r2,
+                "fit_predict_seconds": runtime_s,
+            }
+        )
+
+    summary_rows.append(
+        {
+            "evaluation_scheme": "group_shuffle",
+            "feature_set": feature_set_name,
+            "model": model_key,
+            "n_features": int(len(features)),
+            "n_folds": int(len(maes_g)),
+            "mae_mean": float(np.mean(maes_g)),
+            "mae_std": float(np.std(maes_g)),
+            "rmse_mean": float(np.mean(rmses_g)),
+            "rmse_std": float(np.std(rmses_g)),
+            "r2_mean": float(np.mean(r2s_g)),
+            "r2_std": float(np.std(r2s_g)),
+            "fit_predict_seconds_mean": float(np.mean(runtimes_g)),
+        }
+    )
+
+    # Secondary benchmark 2: standard random row-level shuffled holdouts.
+    rss = ShuffleSplit(
+        n_splits=random_shuffle_splits,
+        test_size=test_size,
+        random_state=random_state,
+    )
+    maes_r: list[float] = []
+    rmses_r: list[float] = []
+    r2s_r: list[float] = []
+    runtimes_r: list[float] = []
+    for fold_idx, (train_idx, test_idx) in enumerate(rss.split(x, y), start=1):
+        x_train = x.iloc[train_idx].copy()
+        x_test = x.iloc[test_idx].copy()
+        y_train = y.iloc[train_idx]
+        y_test = y.iloc[test_idx]
+
+        pipeline = Pipeline(
+            [
+                ("preprocess", mc.make_preprocessor(x_train)),
+                ("model", _build_model(model_key, params=params, random_state=random_state)),
+            ]
+        )
+        t0 = time.perf_counter()
+        pipeline.fit(x_train, y_train)
+        preds = pipeline.predict(x_test)
+        runtime_s = float(time.perf_counter() - t0)
+
+        mae = float(mean_absolute_error(y_test, preds))
+        rmse = float(np.sqrt(mean_squared_error(y_test, preds)))
+        r2 = float(r2_score(y_test, preds))
+
+        maes_r.append(mae)
+        rmses_r.append(rmse)
+        r2s_r.append(r2)
+        runtimes_r.append(runtime_s)
+        fold_rows.append(
+            {
+                "evaluation_scheme": "random_shuffle",
+                "feature_set": feature_set_name,
+                "model": model_key,
+                "fold": fold_idx,
+                "n_train": int(len(train_idx)),
+                "n_test": int(len(test_idx)),
+                "mae": mae,
+                "rmse": rmse,
+                "r2": r2,
+                "fit_predict_seconds": runtime_s,
+            }
+        )
+
+    summary_rows.append(
+        {
+            "evaluation_scheme": "random_shuffle",
+            "feature_set": feature_set_name,
+            "model": model_key,
+            "n_features": int(len(features)),
+            "n_folds": int(len(maes_r)),
+            "mae_mean": float(np.mean(maes_r)),
+            "mae_std": float(np.std(maes_r)),
+            "rmse_mean": float(np.mean(rmses_r)),
+            "rmse_std": float(np.std(rmses_r)),
+            "r2_mean": float(np.mean(r2s_r)),
+            "r2_std": float(np.std(r2s_r)),
+            "fit_predict_seconds_mean": float(np.mean(runtimes_r)),
+        }
+    )
+
+    return pd.DataFrame(fold_rows), pd.DataFrame(summary_rows)
+
+
 def wrapper_forward_selection(
     frame: pd.DataFrame,
     core_features: list[str],
@@ -486,9 +650,7 @@ def tune_model_on_scenario(
         row_rmse = float(row["rmse_mean"])
         best_r2 = float(best["r2_mean"])
         best_rmse = float(best["rmse_mean"])
-        if row_r2 > best_r2 or (
-            np.isclose(row_r2, best_r2) and row_rmse < best_rmse
-        ):
+        if row_r2 > best_r2 or (np.isclose(row_r2, best_r2) and row_rmse < best_rmse):
             best = {**row, "params": params}
 
     if best is None:
@@ -627,6 +789,40 @@ def run(args: argparse.Namespace) -> tuple[pd.DataFrame, pd.DataFrame]:
     logo_folds_df.to_csv(run_dir / "logo_fold_metrics.csv", index=False)
     logo_summary_df.to_csv(run_dir / "logo_summary.csv", index=False)
 
+    # Secondary metrics (less strict) for operational reporting; LOGO remains primary.
+    secondary_fold_tables: list[pd.DataFrame] = []
+    secondary_summary_tables: list[pd.DataFrame] = []
+    print("\nSecondary evaluation (GroupShuffle + RandomShuffle)")
+    for _, row in best_df.iterrows():
+        sec_folds_df, sec_summary_df = evaluate_secondary_splits(
+            frame=frame,
+            feature_set_name=row["scenario"],
+            features=scenarios[row["scenario"]],
+            model_key=row["model"],
+            params=row["params"],
+            random_state=args.random_state,
+            group_shuffle_splits=args.secondary_group_shuffle_splits,
+            random_shuffle_splits=args.secondary_random_shuffle_splits,
+            test_size=args.secondary_test_size,
+        )
+        secondary_fold_tables.append(sec_folds_df)
+        secondary_summary_tables.append(sec_summary_df)
+
+    secondary_folds_df = pd.concat(secondary_fold_tables, ignore_index=True)
+    secondary_summary_df = pd.concat(secondary_summary_tables, ignore_index=True)
+    secondary_summary_df = secondary_summary_df.sort_values(
+        ["evaluation_scheme", "r2_mean", "rmse_mean"],
+        ascending=[True, False, True],
+    )
+    secondary_folds_df.to_csv(run_dir / "secondary_split_fold_metrics.csv", index=False)
+    secondary_summary_df.to_csv(run_dir / "secondary_split_summary.csv", index=False)
+    for scheme in ["group_shuffle", "random_shuffle"]:
+        top = secondary_summary_df[secondary_summary_df["evaluation_scheme"] == scheme].iloc[0]
+        print(
+            f"  {scheme}: best={top['feature_set']} | {top['model']} "
+            f"| r2={top['r2_mean']:.4f} | rmse={top['rmse_mean']:.2f}"
+        )
+
     best_logo = logo_summary_df.iloc[0]
     print("\nBest Step 3 result")
     print(
@@ -657,6 +853,9 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--groupkfold-splits", type=int, default=3)
     parser.add_argument("--target-r2", type=float, default=0.70)
     parser.add_argument("--random-state", type=int, default=42)
+    parser.add_argument("--secondary-group-shuffle-splits", type=int, default=8)
+    parser.add_argument("--secondary-random-shuffle-splits", type=int, default=8)
+    parser.add_argument("--secondary-test-size", type=float, default=0.2)
     return parser.parse_args()
 
 
