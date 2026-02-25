@@ -1,0 +1,72 @@
+feature,importance
+num__Trash(in bundles),0.43758521045862797
+num__Hectares,0.36284938096383107
+cat__Soil Types_clay,0.01905720073048731
+cat__Nursery_dry,0.01893691513532014
+cat__Nursery_wet,0.018672645806499483
+cat__Soil Types_alluvial,0.01860320385591465
+cat__Variety_ponmani,0.013244339425456384
+cat__Variety_CO_43,0.012097688404291344
+cat__Variety_delux ponni,0.008601717639599944
+num__Max temp_D61_D90,0.006725397020334057
+num__Inst Wind Speed_D1_D30(in Knots),0.005268248533786059
+num__Max temp_D1_D30,0.00369972980107029
+num__Relative Humidity_D1_D30,0.0036799596401267906
+num__Relative Humidity_D31_D60,0.0036432933708323684
+num__Min temp_D31_D60,0.0035772072854098466
+num__Min temp_D1_D30,0.0031391564431888837
+num__Relative Humidity_D91_D120,0.0029885406646646944
+num__Inst Wind Speed_D61_D90(in Knots),0.002797021677781823
+num__Max temp_D91_D120,0.002766967934121635
+num__Min temp_D91_D120,0.002759675215487624
+num__Min temp_D61_D90,0.002738411543077245
+num__Relative Humidity_D61_D90,0.0026983163192569456
+num__Max temp_D31_D60,0.002633195245689702
+num__30DAI(in mm),0.0022271526900600005
+num__Inst Wind Speed_D91_D120(in Knots),0.0021888217260953493
+num__Inst Wind Speed_D31_D60(in Knots),0.0021378693896474585
+num__30DRain( in mm),0.001960331111518763
+num__71_105DAI(in mm),0.001775259977398524
+num__30_50DRain( in mm),0.0017290837428137159
+cat__Wind Direction_D61_D90_NNW,0.0016756302491353554
+num__51_70AI(in mm),0.001637653004792476
+cat__Wind Direction_D31_D60_W,0.001603463498261079
+num__30_50DAI(in mm),0.0015512406457526883
+num__71_105DRain(in mm),0.0015097404711619613
+cat__Wind Direction_D1_D30_SW,0.001465387610478141
+cat__Wind Direction_D91_D120_WSW,0.001426932679361893
+num__51_70DRain(in mm),0.0012935184582429484
+cat__Wind Direction_D61_D90_SE,0.0012819255993147978
+cat__Agriblock_Cuddalore,0.0011099469319249522
+cat__Wind Direction_D91_D120_NNW,0.0008047685545437301
+cat__Agriblock_Sankarapuram,0.0007845539180967744
+cat__Agriblock_Panruti,0.0007844195419496405
+cat__Wind Direction_D31_D60_ENE,0.0007785029379819168
+cat__Wind Direction_D1_D30_E,0.0007678402525297071
+cat__Wind Direction_D61_D90_NE,0.0007516126385864005
+cat__Wind Direction_D91_D120_SSE,0.0007324152711756408
+cat__Wind Direction_D91_D120_S,0.0007105036617040641
+cat__Wind Direction_D91_D120_W,0.0006936520562346034
+cat__Wind Direction_D91_D120_NW,0.0006923584433782758
+cat__Wind Direction_D1_D30_W,0.0006645275649808777
+cat__Wind Direction_D31_D60_WNW,0.0006559194516857791
+cat__Wind Direction_D31_D60_S,0.0006546719144892077
+cat__Wind Direction_D1_D30_SSE,0.0006367618216366113
+cat__Agriblock_Kurinjipadi,0.0006250042213243128
+cat__Wind Direction_D1_D30_NW,0.000616263310442387
+cat__Agriblock_Kallakurichi,0.0006034262271922368
+cat__Wind Direction_D61_D90_SW,0.0005833552371205932
+cat__Agriblock_Chinnasalem,0.000565594641574461
+cat__Wind Direction_D31_D60_NE,0.0005505664277663686
+cat__Wind Direction_D1_D30_ENE,0.0005400597872954495
+cat__Wind Direction_D61_D90_NNE,0.00046584121749461773
+num__LP_nurseryarea(in Tonnes)_per_hectare,0.0
+num__Micronutrients_70Days_per_hectare,0.0
+num__Weed28D_thiobencarb_per_hectare,0.0
+num__Urea_40Days_per_hectare,0.0
+num__DAP_20days_per_hectare,0.0
+num__Nursery area (Cents)_per_hectare,0.0
+num__Pest_60Day(in ml)_per_hectare,0.0
+num__LP_Mainfield(in Tonnes)_per_hectare,0.0
+num__Seedrate(in Kg)_per_hectare,0.0
+num__Potassh_50Days_per_hectare,0.0

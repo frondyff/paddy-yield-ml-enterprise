@@ -1,0 +1,89 @@
+{
+  "config": {
+    "data_path": "/home/frondy/code/paddy-yield-ml-enterprise/data/raw/paddydataset.csv",
+    "out_dir": "/home/frondy/code/paddy-yield-ml-enterprise/outputs/baseline",
+    "seed": 42,
+    "test_size": 0.2,
+    "group_col": "Agriblock",
+    "run_eda": false,
+    "target_col": "Paddy yield_per_hectare(in Kg)"
+  },
+  "metrics": {
+    "random_split": {
+      "mae": 180.6262589051614,
+      "rmse": 230.99331089098254,
+      "r2": 0.39980218072042895
+    },
+    "leakage_check": {
+      "dropped_features": [],
+      "metrics": null
+    },
+    "group_split": {
+      "mae": 165.88561473641025,
+      "rmse": 215.2176845023809,
+      "r2": 0.44896418145465433
+    },
+    "logo": {
+      "per_group": [
+        {
+          "group": "Chinnasalem",
+          "mae": 165.41474469711756,
+          "rmse": 211.17584692473673,
+          "r2": 0.4785055076198157,
+          "n_rows": 358
+        },
+        {
+          "group": "Cuddalore",
+          "mae": 173.17789224064143,
+          "rmse": 224.02868915710516,
+          "r2": 0.3914278584995422,
+          "n_rows": 364
+        },
+        {
+          "group": "Kallakurichi",
+          "mae": 165.55376719394908,
+          "rmse": 211.58177026695614,
+          "r2": 0.43898092111193143,
+          "n_rows": 353
+        },
+        {
+          "group": "Kurinjipadi",
+          "mae": 162.8442462233322,
+          "rmse": 200.79569185284777,
+          "r2": 0.5190236684741132,
+          "n_rows": 401
+        },
+        {
+          "group": "Panruti",
+          "mae": 152.87824491018716,
+          "rmse": 195.23306028227756,
+          "r2": 0.550259518531319,
+          "n_rows": 360
+        },
+        {
+          "group": "Sankarapuram",
+          "mae": 163.23805348717173,
+          "rmse": 203.0907992500495,
+          "r2": 0.5119517035902948,
+          "n_rows": 502
+        }
+      ],
+      "summary": {
+        "mae_mean": 163.85115812539985,
+        "mae_std": 5.97391891431,
+        "rmse_mean": 207.65097628899548,
+        "rmse_std": 9.292471059618178,
+        "r2_mean": 0.48169152963783607,
+        "r2_std": 0.05321781180979321
+      }
+    }
+  },
+  "train_shape": [
+    1870,
+    44
+  ],
+  "test_shape": [
+    468,
+    44
+  ]
+}
