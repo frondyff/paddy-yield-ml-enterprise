@@ -61,6 +61,11 @@ def dedupe_keep_order(items: Iterable[str]) -> list[str]:
 
 
 def load_analysis_frame() -> pd.DataFrame:
+    """Load, clean, and prepare the analysis dataset.
+    
+    Returns:
+        Normalized and deduplicated analysis dataframe.
+    """
     if not DATA_PATH.exists():
         raise FileNotFoundError(f"Missing dataset: {DATA_PATH}")
 
@@ -100,6 +105,10 @@ def load_hybrid_candidates(auto_run_feature_prepare: bool) -> pd.DataFrame:
 
 
 def build_feature_sets(candidates_df: pd.DataFrame) -> dict[str, list[str]]:
+    """Construct feature sets from hybrid selection candidates.
+    
+    Returns three feature sets: modifiable_only, modifiable_plus_context, and hybrid_with_review.
+    """
     cdf = candidates_df.copy()
     if "hybrid_priority_score" in cdf.columns:
         cdf = cdf.sort_values("hybrid_priority_score", ascending=False, na_position="last")
@@ -139,6 +148,11 @@ def filter_available_features(features: Iterable[str], frame: pd.DataFrame) -> l
 
 
 def make_preprocessor(x_train: pd.DataFrame) -> ColumnTransformer:
+    """Create a preprocessing pipeline for numeric and categorical features.
+    
+    Numeric features: imputed with median.
+    Categorical features: imputed with mode, then one-hot encoded.
+    """
     num_cols = x_train.select_dtypes(include=[np.number]).columns.tolist()
     cat_cols = x_train.select_dtypes(exclude=[np.number]).columns.tolist()
 
@@ -179,6 +193,10 @@ def parse_model_list(raw: str) -> list[str]:
 
 
 def build_model_specs(model_names: list[str], n_estimators: int, random_state: int) -> list[ModelSpec]:
+    """Build model specifications for comparison.
+    
+    Uses default arguments in lambdas to avoid closure issues.
+    """
     supported = {"random_forest", "lightgbm", "xgboost", "catboost"}
     unknown = [m for m in model_names if m not in supported]
     if unknown:
@@ -190,10 +208,10 @@ def build_model_specs(model_names: list[str], n_estimators: int, random_state: i
             specs.append(
                 ModelSpec(
                     name="RandomForest",
-                    build=lambda: RandomForestRegressor(
-                        n_estimators=n_estimators,
+                    build=lambda n_est=n_estimators, rs=random_state: RandomForestRegressor(
+                        n_estimators=n_est,
                         min_samples_leaf=2,
-                        random_state=random_state,
+                        random_state=rs,
                         n_jobs=-1,
                     ),
                 )
@@ -206,13 +224,13 @@ def build_model_specs(model_names: list[str], n_estimators: int, random_state: i
             specs.append(
                 ModelSpec(
                     name="LightGBM",
-                    build=lambda: LGBMRegressor(
-                        n_estimators=n_estimators,
+                    build=lambda n_est=n_estimators, rs=random_state: LGBMRegressor(
+                        n_estimators=n_est,
                         learning_rate=0.05,
                         num_leaves=31,
                         subsample=0.9,
                         colsample_bytree=0.9,
-                        random_state=random_state,
+                        random_state=rs,
                     ),
                 )
             )
@@ -224,14 +242,14 @@ def build_model_specs(model_names: list[str], n_estimators: int, random_state: i
             specs.append(
                 ModelSpec(
                     name="XGBoost",
-                    build=lambda: XGBRegressor(
-                        n_estimators=n_estimators,
+                    build=lambda n_est=n_estimators, rs=random_state: XGBRegressor(
+                        n_estimators=n_est,
                         learning_rate=0.05,
                         max_depth=6,
                         subsample=0.9,
                         colsample_bytree=0.9,
                         objective="reg:squarederror",
-                        random_state=random_state,
+                        random_state=rs,
                         n_jobs=-1,
                     ),
                 )
@@ -244,12 +262,12 @@ def build_model_specs(model_names: list[str], n_estimators: int, random_state: i
             specs.append(
                 ModelSpec(
                     name="CatBoost",
-                    build=lambda: CatBoostRegressor(
-                        iterations=n_estimators,
+                    build=lambda n_est=n_estimators, rs=random_state: CatBoostRegressor(
+                        iterations=n_est,
                         learning_rate=0.05,
                         depth=6,
                         loss_function="RMSE",
-                        random_seed=random_state,
+                        random_seed=rs,
                         verbose=False,
                         allow_writing_files=False,
                     ),
@@ -266,6 +284,17 @@ def evaluate_logo(
     features: list[str],
     model_specs: list[ModelSpec],
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Evaluate models using Leave-One-Group-Out (LOGO) cross-validation.
+    
+    Args:
+        frame: Input dataframe with features and target.
+        feature_set_name: Name of the feature set being evaluated.
+        features: List of feature column names.
+        model_specs: List of ModelSpec objects to evaluate.
+    
+    Returns:
+        Tuple of (fold_records_df, summary_df) with per-fold and aggregate metrics.
+    """
     subset = frame[features + [TARGET_COL, GROUP_COL]].copy()
     subset[TARGET_COL] = pd.to_numeric(subset[TARGET_COL], errors="coerce")
     subset[GROUP_COL] = subset[GROUP_COL].astype("string")
@@ -281,14 +310,19 @@ def evaluate_logo(
     logo = LeaveOneGroupOut()
     fold_records: list[dict] = []
     summary_records: list[dict] = []
+    n_folds_total = logo.get_n_splits(x, y, groups)
 
     for spec in model_specs:
         maes: list[float] = []
         rmses: list[float] = []
         r2s: list[float] = []
         runtimes: list[float] = []
+        print(f"  Evaluating {spec.name} on {feature_set_name} ({n_folds_total} folds)...")
 
         for fold_idx, (train_idx, test_idx) in enumerate(logo.split(x, y, groups), start=1):
+            if fold_idx % max(1, n_folds_total // 5) == 0 or fold_idx == n_folds_total:
+                print(f"    Fold {fold_idx}/{n_folds_total}")
+            
             x_train = x.iloc[train_idx].copy()
             x_test = x.iloc[test_idx].copy()
             y_train = y.iloc[train_idx]
@@ -351,7 +385,16 @@ def evaluate_logo(
 
 
 def run(args: argparse.Namespace) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Execute the model comparison pipeline.
+    
+    Args:
+        args: Command-line arguments with models, feature_set, n_estimators, random_state.
+    
+    Returns:
+        Tuple of (all_folds_df, all_summary_df) with complete evaluation results.
+    """
     OUT_DIR.mkdir(parents=True, exist_ok=True)
+    print("Loading and preparing data...")
     analysis_df = load_analysis_frame()
     candidates_df = load_hybrid_candidates(auto_run_feature_prepare=args.auto_run_feature_prepare)
 
@@ -363,6 +406,7 @@ def run(args: argparse.Namespace) -> tuple[pd.DataFrame, pd.DataFrame]:
 
     model_names = parse_model_list(args.models)
     model_specs = build_model_specs(model_names, n_estimators=args.n_estimators, random_state=args.random_state)
+    print(f"Comparing {len(model_specs)} model(s) on {len(feature_sets)} feature set(s)...\n")
 
     feature_rows: list[dict] = []
     fold_tables: list[pd.DataFrame] = []
