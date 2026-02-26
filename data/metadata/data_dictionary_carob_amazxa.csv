@@ -1,0 +1,32 @@
+column_name,feature_group,data_type,unit_or_levels,meaning,evidence_basis,actionability,leakage_risk,modeling_recommendation,final_role,missing_pct,n_unique
+crop,Crop,categorical,crop,Crop type,CAROB meta + column semantics,Not modifiable,none,drop_if_constant,context,0.0,1
+variety,Genotype,categorical,variety,Rice variety,CAROB meta + column semantics,Modifiable,none,keep_secondary_treatment,modifiable,0.0,83
+dataset_id,Identifier,categorical,id,Unique dataset identifier,CAROB meta + column semantics,Not modifiable,high,exclude_identifier,proxy,0.0,1
+record_id,Identifier,numeric,id,Unique row identifier,CAROB meta + column semantics,Not modifiable,high,exclude_identifier,proxy,0.0,1223
+country,Location,categorical,country,Country,CAROB meta + column semantics,Not modifiable,none,keep_context,context,0.0,8
+geo_from_source,Location,boolean,bool,Coordinates from original source,CAROB meta + column semantics,Not modifiable,none,keep_context,context,0.0,1
+latitude,Location,numeric,deg,Latitude,CAROB meta + column semantics,Not modifiable,none,keep_context,context,0.0,11
+location,Location,categorical,site,Site name,CAROB meta + column semantics,Not modifiable,none,keep_context,context,0.0,11
+longitude,Location,numeric,deg,Longitude,CAROB meta + column semantics,Not modifiable,none,keep_context,context,0.0,11
+plot_area,Management,numeric,m2,Plot size,CAROB meta + column semantics,Not modifiable,none,keep_context,context,12.510220768601798,9
+row_spacing,Management,numeric,cm,Row spacing,CAROB meta + column semantics,Modifiable,none,review_missingness,modifiable,45.62551103843009,4
+K_fertilizer,Nutrient input,numeric,rate,Potassium input,CAROB meta + column semantics,Modifiable,none,review_low_variation,modifiable,10.384300899427638,4
+N_fertilizer,Nutrient input,numeric,rate,Nitrogen input,CAROB meta + column semantics,Modifiable,none,review_low_variation,modifiable,10.384300899427638,5
+P_fertilizer,Nutrient input,numeric,rate,Phosphorus input rate,CAROB meta + column semantics,Modifiable,none,keep_alt_treatment_redundant_with_treatment,modifiable,0.0,3
+dmy_residue,Post-harvest response,numeric,yield-like,Residue dry matter outcome,CAROB meta + column semantics,Not modifiable,high,exclude_post_outcome,proxy,19.29681112019624,983
+grain_P,Post-harvest response,numeric,concentration,Grain P concentration outcome,CAROB meta + column semantics,Not modifiable,high,exclude_post_outcome,proxy,8.340147179067865,1054
+residue_P,Post-harvest response,numeric,concentration,Residue P concentration outcome,CAROB meta + column semantics,Not modifiable,high,exclude_post_outcome,proxy,27.6369582992641,795
+soil_P,Soil,numeric,P,Soil phosphorus status,CAROB meta + column semantics,Not modifiable,none,keep_context_moderator,context,43.908421913327885,21
+soil_pH,Soil,numeric,pH,Soil pH,CAROB meta + column semantics,Not modifiable,none,keep_context_moderator,context,39.41128372853638,13
+yield,Target,numeric,kg/ha,Primary response variable,CAROB meta + column semantics,Target,none,target,target,1.7170891251022076,1197
+yield_part,Target definition,categorical,grain/straw,Yield component label,CAROB meta + column semantics,Not modifiable,none,drop_if_constant,context,0.0,1
+yield_moisture,Target measurement,numeric,moisture,Yield moisture reference,CAROB meta + column semantics,Not modifiable,none,keep_context_if_available,context,100.0,0
+planting_date,Time,numeric,year,Planting year/date code,CAROB meta + column semantics,Not modifiable,none,keep_context,context,0.0,3
+season,Time,categorical,wet/dry,Season label,CAROB meta + column semantics,Not modifiable,none,keep_context,context,0.7358953393295176,2
+treatment,Treatment,categorical,+P/-P,Primary phosphorus treatment arm,CAROB meta + column semantics,Derived_from_P_fertilizer,none,exclude_redundant_with_p_fertilizer,proxy,0.0,2
+is_survey,Trial design,boolean,bool,Survey vs experimental record,CAROB meta + column semantics,Not modifiable,none,keep_context,context,0.0,1
+on_farm,Trial design,boolean,bool,On-farm vs station trial,CAROB meta + column semantics,Not modifiable,none,keep_context,context,0.0,1
+rep,Trial design,numeric,replicate,Replicate index,CAROB meta + column semantics,Not modifiable,none,keep_context,context,8.094848732624694,2
+trial_id,Trial design,numeric,trial,Trial identifier for grouped evaluation,CAROB meta + column semantics,Not modifiable,none,keep_grouping_key,context,0.0,19
+flooded,Water regime,boolean,bool,Flooding condition,CAROB meta + column semantics,Partly modifiable,none,keep_context,modifiable,0.0,2
+irrigated,Water regime,boolean,bool,Irrigation indicator,CAROB meta + column semantics,Partly modifiable,none,review_low_variation,modifiable,0.0,2

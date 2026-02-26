@@ -1,6 +1,6 @@
 UV ?= uv
 
-.PHONY: sync install lock run-baseline run-feature-prepare run-model-compare run-model-select-tune run-ablation-eval run-interpretability-report test lint format typecheck verify clean
+.PHONY: sync install lock help run-carob-baseline run-carob-feature-prepare run-carob-model-compare run-carob-causal-pilot run-baseline run-feature-prepare run-model-compare run-causal-pilot run-model-select-tune run-ablation-eval run-interpretability-report test lint format typecheck verify clean
 
 sync:
 	$(UV) sync --all-groups
@@ -10,14 +10,46 @@ install: sync
 lock:
 	$(UV) lock
 
+help:
+	@echo "Primary CAROB targets:"
+	@echo "  make run-carob-baseline"
+	@echo "  make run-carob-feature-prepare"
+	@echo "  make run-carob-model-compare"
+	@echo "  make run-carob-causal-pilot"
+	@echo ""
+	@echo "Legacy paddy targets (kept for compatibility):"
+	@echo "  make run-model-select-tune"
+	@echo "  make run-ablation-eval"
+	@echo "  make run-interpretability-report"
+
+run-carob-baseline:
+	$(UV) run python src/paddy_yield_ml/pipelines/carob_baseline.py
+
+run-carob-feature-prepare:
+	$(UV) run python src/paddy_yield_ml/pipelines/carob_feature_prepare.py
+
+run-carob-model-compare:
+	$(UV) run python src/paddy_yield_ml/pipelines/carob_model_compare.py
+
+run-carob-causal-pilot:
+	$(UV) run python src/paddy_yield_ml/pipelines/carob_causal_pilot.py
+
+# Deprecated aliases: prefer run-carob-* targets for active CAROB workflows.
 run-baseline:
-	$(UV) run python src/paddy_yield_ml/pipelines/baseline.py
+	@echo "Deprecated alias: use 'make run-carob-baseline'"
+	$(MAKE) run-carob-baseline
 
 run-feature-prepare:
-	$(UV) run python src/paddy_yield_ml/pipelines/feature_prepare.py
+	@echo "Deprecated alias: use 'make run-carob-feature-prepare'"
+	$(MAKE) run-carob-feature-prepare
 
 run-model-compare:
-	$(UV) run python src/paddy_yield_ml/pipelines/model_compare.py
+	@echo "Deprecated alias: use 'make run-carob-model-compare'"
+	$(MAKE) run-carob-model-compare
+
+run-causal-pilot:
+	@echo "Deprecated alias: use 'make run-carob-causal-pilot'"
+	$(MAKE) run-carob-causal-pilot
 
 run-model-select-tune:
 	$(UV) run python src/paddy_yield_ml/pipelines/model_select_tune.py

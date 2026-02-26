@@ -27,6 +27,26 @@ Thumbs.db
 # Generated outputs
 outputs/*
 !outputs/.gitkeep
+
+# CAROB placeholders (active track)
+!outputs/carob_baseline/
+!outputs/carob_baseline/.gitkeep
+!outputs/carob_feature_prepare/
+!outputs/carob_feature_prepare/.gitkeep
+!outputs/carob_model_compare/
+!outputs/carob_model_compare/.gitkeep
+!outputs/carob_causal_pilot/
+!outputs/carob_causal_pilot/.gitkeep
+outputs/carob_baseline/*
+!outputs/carob_baseline/.gitkeep
+outputs/carob_feature_prepare/*
+!outputs/carob_feature_prepare/.gitkeep
+outputs/carob_model_compare/*
+!outputs/carob_model_compare/.gitkeep
+outputs/carob_causal_pilot/*
+!outputs/carob_causal_pilot/.gitkeep
+
+# Legacy outputs (kept for compatibility)
 !outputs/baseline/
 !outputs/baseline/.gitkeep
 !outputs/baseline/**
@@ -42,3 +62,6 @@ outputs/*
 !outputs/interpretability/
 !outputs/interpretability/**
 !outputs/run_all_manifest.json
+
+# Training/runtime artifacts
+catboost_info/

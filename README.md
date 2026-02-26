@@ -1,95 +1,84 @@
-# Paddy Yield Decision Support Using Enterprise Machine Learning
+# CAROB Rice Decision Support Using Interpretable Enterprise ML
 
 McGill MMA Enterprise Analytics Group Project
 
-## Enterprise context
-Agricultural organizations need reliable yield forecasting and resource planning under uncertain weather and field conditions. This project builds an enterprise-ready, reproducible ML workflow for paddy yield analysis and decision support.
+## Project direction
+This repository now uses **CAROB (doi:10.7910/DVN/AMAZXA)** as the primary case for the decision-support framework.
+The former paddy dataset pipelines are kept only as legacy reference and are no longer the core analysis path.
 
-## Goals
-- Identify key yield drivers with interpretable analysis.
-- Prepare a robust feature set for hybrid feature selection.
-- Support model comparison, strict/secondary validation, and actionable recommendations with reproducible pipelines and quality checks.
+## Enterprise objective
+Build a reproducible decision-support workflow that can:
+- predict rice yield under trial/site variability,
+- explain predictions with transparent feature logic,
+- produce actionable recommendations with confidence/caveat labels,
+- support causal stretch-goal diagnostics where data structure allows.
 
-## Core pipelines
-- `src/paddy_yield_ml/pipelines/baseline.py`
-- `src/paddy_yield_ml/pipelines/feature_prepare.py`
-- `src/paddy_yield_ml/pipelines/model_compare.py`
-- `src/paddy_yield_ml/pipelines/model_select_tune.py`
-- `src/paddy_yield_ml/pipelines/ablation_eval.py`
-- `src/paddy_yield_ml/pipelines/interpretability_report.py`
+## CAROB core pipelines
+- `src/paddy_yield_ml/pipelines/carob_baseline.py`
+- `src/paddy_yield_ml/pipelines/carob_feature_prepare.py`
+- `src/paddy_yield_ml/pipelines/carob_model_compare.py`
+- `src/paddy_yield_ml/pipelines/carob_causal_pilot.py`
 
-## Data and outputs
-- Inputs:
-  - `data/input/paddydataset.csv`
-  - `data/metadata/data_dictionary_paddy.csv`
-- Outputs:
-  - `outputs/baseline/`
-  - `outputs/feature_prepare/`
-  - `outputs/model_compare/`
-  - `outputs/model_select_tune/`
-  - `outputs/ablation_eval/`
-  - `outputs/interpretability/`
+## Inputs (CAROB)
+- `data/input/carob_amazxa.csv`
+- `data/metadata/carob_amazxa_meta.csv`
+- `data/metadata/data_dictionary_carob_amazxa.csv`
 
-## Validation philosophy
-- Primary metric: `Leave-One-Agriblock-Out (LOGO)` for cross-agriblock generalization.
-- Secondary metrics: `GroupShuffle` and `RandomShuffle` for operational context.
-- Proxy/leakage controls are strict; interpretability findings are associative (not causal).
+## Outputs (CAROB)
+- `outputs/carob_baseline/`
+- `outputs/carob_feature_prepare/`
+- `outputs/carob_model_compare/`
+- `outputs/carob_causal_pilot/`
 
-## Current milestone snapshot
-- Best model family so far: `CatBoost`.
-- Best strict result (LOGO): around `R2 ~ 0.506` on `full_review` feature set.
-- Weather/water+location ablation did not improve over conservative base feature set.
-- Interpretability package delivered:
-  - global SHAP importance,
-  - local SHAP examples,
-  - modifiable-only decision rules,
-  - recommendation draft and 1-page milestone summary.
+## Validation philosophy (CAROB)
+- Predictive robustness: Leave-One-Trial-Out grouped evaluation.
+- Feature governance: role-based screening (modifiable/context/proxy) + redundancy review.
+- Causal stretch goal: trial-aware +P vs -P treatment estimation with heterogeneity diagnostics.
 
-## Project layout
-```text
-paddy-yield-ml-enterprise/
-  data/
-    input/
-    metadata/
-  outputs/
-    baseline/
-    feature_prepare/
-    model_compare/
-    model_select_tune/
-    ablation_eval/
-    interpretability/
-  scripts/
-  src/paddy_yield_ml/pipelines/
-  tests/
-  Makefile
-  pyproject.toml
-```
-
-## Setup and run
+## Setup
 ```bash
 uv sync --all-groups
-uv run python src/paddy_yield_ml/pipelines/baseline.py
-uv run python src/paddy_yield_ml/pipelines/feature_prepare.py
-uv run python src/paddy_yield_ml/pipelines/model_compare.py
-uv run python src/paddy_yield_ml/pipelines/model_select_tune.py --run-tag dual_eval
-uv run python src/paddy_yield_ml/pipelines/ablation_eval.py --run-tag weather_location_ablation
-uv run python src/paddy_yield_ml/pipelines/interpretability_report.py --run-tag milestone_interpretability_v1
+```
+
+## Run CAROB pipelines
+```bash
+uv run python src/paddy_yield_ml/pipelines/carob_baseline.py
+uv run python src/paddy_yield_ml/pipelines/carob_feature_prepare.py
+uv run python src/paddy_yield_ml/pipelines/carob_model_compare.py
+uv run python src/paddy_yield_ml/pipelines/carob_causal_pilot.py --run-tag v1
 ```
 
 Wrappers:
 ```bash
-python scripts/run_baseline.py
-python scripts/run_feature_prepare.py
-python scripts/run_model_compare.py
-python scripts/run_model_select_tune.py --run-tag dual_eval
-python scripts/run_ablation_eval.py --run-tag weather_location_ablation
-python scripts/run_interpretability_report.py --run-tag milestone_interpretability_v1
+python scripts/run_carob_baseline.py
+python scripts/run_carob_feature_prepare.py
+python scripts/run_carob_model_compare.py
+python scripts/run_carob_causal_pilot.py
 ```
 
-For a walkthrough of script intent and results, see:
-- `scripts/README.md`
+Make targets:
+```bash
+make run-carob-baseline
+make run-carob-feature-prepare
+make run-carob-model-compare
+make run-carob-causal-pilot
+make help
+```
 
-## Quality and automation
+## Legacy (paddy) scope
+Paddy pipelines remain in the repository as legacy reference and compatibility paths.
+They are not the primary analysis flow and should not be used as default project entrypoints.
+
+Legacy wrappers and pipelines include:
+- `scripts/run_baseline.py`
+- `scripts/run_feature_prepare.py`
+- `scripts/run_model_compare.py`
+- `scripts/run_model_select_tune.py`
+- `scripts/run_ablation_eval.py`
+- `scripts/run_interpretability_report.py`
+- `scripts/run_causal_pilot.py`
+
+## Quality checks
 ```bash
 make lint
 make format

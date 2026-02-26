@@ -62,7 +62,7 @@ def dedupe_keep_order(items: Iterable[str]) -> list[str]:
 
 def load_analysis_frame() -> pd.DataFrame:
     """Load, clean, and prepare the analysis dataset.
-    
+
     Returns:
         Normalized and deduplicated analysis dataframe.
     """
@@ -106,7 +106,7 @@ def load_hybrid_candidates(auto_run_feature_prepare: bool) -> pd.DataFrame:
 
 def build_feature_sets(candidates_df: pd.DataFrame) -> dict[str, list[str]]:
     """Construct feature sets from hybrid selection candidates.
-    
+
     Returns three feature sets: modifiable_only, modifiable_plus_context, and hybrid_with_review.
     """
     cdf = candidates_df.copy()
@@ -149,7 +149,7 @@ def filter_available_features(features: Iterable[str], frame: pd.DataFrame) -> l
 
 def make_preprocessor(x_train: pd.DataFrame) -> ColumnTransformer:
     """Create a preprocessing pipeline for numeric and categorical features.
-    
+
     Numeric features: imputed with median.
     Categorical features: imputed with mode, then one-hot encoded.
     """
@@ -194,7 +194,7 @@ def parse_model_list(raw: str) -> list[str]:
 
 def build_model_specs(model_names: list[str], n_estimators: int, random_state: int) -> list[ModelSpec]:
     """Build model specifications for comparison.
-    
+
     Uses default arguments in lambdas to avoid closure issues.
     """
     supported = {"random_forest", "lightgbm", "xgboost", "catboost"}
@@ -285,13 +285,13 @@ def evaluate_logo(
     model_specs: list[ModelSpec],
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Evaluate models using Leave-One-Group-Out (LOGO) cross-validation.
-    
+
     Args:
         frame: Input dataframe with features and target.
         feature_set_name: Name of the feature set being evaluated.
         features: List of feature column names.
         model_specs: List of ModelSpec objects to evaluate.
-    
+
     Returns:
         Tuple of (fold_records_df, summary_df) with per-fold and aggregate metrics.
     """
@@ -322,7 +322,7 @@ def evaluate_logo(
         for fold_idx, (train_idx, test_idx) in enumerate(logo.split(x, y, groups), start=1):
             if fold_idx % max(1, n_folds_total // 5) == 0 or fold_idx == n_folds_total:
                 print(f"    Fold {fold_idx}/{n_folds_total}")
-            
+
             x_train = x.iloc[train_idx].copy()
             x_test = x.iloc[test_idx].copy()
             y_train = y.iloc[train_idx]
@@ -386,10 +386,10 @@ def evaluate_logo(
 
 def run(args: argparse.Namespace) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Execute the model comparison pipeline.
-    
+
     Args:
         args: Command-line arguments with models, feature_set, n_estimators, random_state.
-    
+
     Returns:
         Tuple of (all_folds_df, all_summary_df) with complete evaluation results.
     """

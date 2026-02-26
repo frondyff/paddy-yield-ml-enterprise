@@ -1,7 +1,7 @@
 [project]
 name = "paddy-yield-ml-enterprise"
 version = "0.1.0"
-description = "Enterprise-ready paddy yield baseline and feature-preparation pipelines."
+description = "Enterprise-ready CAROB rice decision-support pipelines with interpretable modeling and causal diagnostics."
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
