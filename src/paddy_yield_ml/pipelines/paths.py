@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-
 DEFAULT_DATA_CANDIDATES = (
     Path("data/input/paddydataset.csv"),
     Path("data/raw/paddydataset.csv"),

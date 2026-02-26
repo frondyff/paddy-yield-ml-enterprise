@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 import argparse
+import importlib
 import json
+import sys
 from pathlib import Path
 
-from paddy_yield_ml.pipelines.ablation_eval import run_ablation_eval
 from paddy_yield_ml.pipelines.baseline_train import (
     TARGET_COL,
     add_per_hectare_features,
@@ -14,10 +15,7 @@ from paddy_yield_ml.pipelines.baseline_train import (
     save_artifacts,
     train_and_evaluate,
 )
-from paddy_yield_ml.pipelines.feature_prepare import run_feature_prepare
 from paddy_yield_ml.pipelines.interpretability import run_interpretability
-from paddy_yield_ml.pipelines.model_compare import run_model_compare
-from paddy_yield_ml.pipelines.model_select_tune import run_model_select_tune
 from paddy_yield_ml.pipelines.paths import project_root, resolve_data_path
 
 
@@ -58,6 +56,20 @@ def _run_baseline(data_path: Path, out_dir: Path, seed: int, test_size: float) -
     )
 
 
+def _run_legacy_main(module_name: str, argv: list[str]) -> None:
+    module = importlib.import_module(module_name)
+    main = getattr(module, "main", None)
+    if not callable(main):
+        raise AttributeError(f"Module {module_name} has no callable main().")
+
+    old_argv = sys.argv[:]
+    try:
+        sys.argv = [module_name.rsplit(".", maxsplit=1)[-1], *argv]
+        main()
+    finally:
+        sys.argv = old_argv
+
+
 def main() -> None:
     args = parse_args()
     data_path = resolve_data_path(args.data_path)
@@ -73,10 +85,11 @@ def main() -> None:
     }
 
     _run_baseline(data_path, targets["baseline"], args.seed, args.test_size)
-    run_feature_prepare(data_path, targets["feature_prepare"])
-    run_model_compare(data_path, targets["model_compare"], args.seed, args.test_size)
-    run_model_select_tune(data_path, targets["model_select_tune"], args.seed)
-    run_ablation_eval(data_path, targets["ablation_eval"], args.seed, args.test_size)
+    # Legacy orchestration fallback: invoke pipeline entrypoints directly.
+    _run_legacy_main("paddy_yield_ml.pipelines.feature_prepare", [])
+    _run_legacy_main("paddy_yield_ml.pipelines.model_compare", [])
+    _run_legacy_main("paddy_yield_ml.pipelines.model_select_tune", [])
+    _run_legacy_main("paddy_yield_ml.pipelines.ablation_eval", [])
     run_interpretability(data_path, targets["interpretability"], args.seed, args.test_size)
 
     with (outputs_root / "run_all_manifest.json").open("w", encoding="utf-8") as f:

@@ -5,8 +5,9 @@ from __future__ import annotations
 import argparse
 import json
 import logging
+from collections.abc import Sequence
 from pathlib import Path
-from typing import Any, Sequence
+from typing import Any
 
 import joblib
 import matplotlib.pyplot as plt
@@ -40,7 +41,7 @@ SIZE_SCALED_COLS = [
 LOGGER = logging.getLogger(__name__)
 
 
-def clean_columns(cols: Sequence[str]) -> list[str]:
+def clean_columns(cols: Sequence[object]) -> list[str]:
     return [" ".join(str(col).strip().split()) for col in cols]
 
 
@@ -49,7 +50,7 @@ def load_dataset(data_path: Path) -> pd.DataFrame:
         raise FileNotFoundError(f"Missing dataset: {data_path}")
 
     df = pd.read_csv(data_path)
-    df.columns = clean_columns(df.columns)
+    df.columns = clean_columns(list(df.columns))
     return df
 
 
@@ -334,8 +335,9 @@ def save_artifacts(
             plt.figure(figsize=(10, 8))
             plt.imshow(corr, cmap="coolwarm", aspect="auto")
             plt.colorbar()
-            plt.xticks(range(len(corr.columns)), corr.columns, rotation=90, fontsize=6)
-            plt.yticks(range(len(corr.columns)), corr.columns, fontsize=6)
+            labels = [str(col) for col in corr.columns]
+            plt.xticks(range(len(labels)), labels, rotation=90, fontsize=6)
+            plt.yticks(range(len(labels)), labels, fontsize=6)
             plt.title("Numeric Correlation Heatmap")
             plt.tight_layout()
             plt.savefig(out_dir / "numeric_corr_heatmap.png", dpi=150)
