@@ -1,0 +1,28 @@
+feature,feature_group,final_role,status,global_association,within_group_association,high_corr_pair_count,high_corr_drop_candidate_count,hybrid_priority_score,reasons
+variety,Genotype,modifiable,candidate_modifiable,0.12948340590557816,0.6371657078512446,0,0,1.422169578650085,
+flooded,Water regime,modifiable,candidate_modifiable,0.27275127362912155,,0,0,1.2182010189032972,
+irrigated,Water regime,modifiable,candidate_modifiable,0.16858782273223238,,0,0,1.134870258185786,
+N_fertilizer,Nutrient input,modifiable,candidate_modifiable,0.1266721386503573,,0,0,1.1013377109202858,
+P_fertilizer,Nutrient input,modifiable,candidate_modifiable,0.031575419765272575,0.13121608518642727,0,0,1.0908683784054318,
+row_spacing,Management,modifiable,candidate_modifiable,0.015546273899972301,0.1546537507538568,0,0,1.0897638944969064,
+K_fertilizer,Nutrient input,modifiable,candidate_modifiable,0.06159095808098567,,0,0,1.0492727664647885,
+soil_P,Soil,context,reserve_context,0.45553197278173974,0.5038950719043397,0,0,0.8663731141775617,
+plot_area,Management,context,reserve_context,0.37103117501672345,0.17413729360054775,0,0,0.6338935868136526,
+latitude,Location,context,reserve_context,0.4363301002780815,,0,0,0.5990640802224652,
+soil_pH,Soil,context,reserve_context,0.1701604848908235,0.35421490016820906,0,0,0.5632358379967634,
+location,Location,context,reserve_context,0.3880993195178412,,0,0,0.5604794556142729,
+country,Location,context,reserve_context,0.37379587705257444,,0,0,0.5490367016420596,
+longitude,Location,context,reserve_context,0.14635687850739723,,0,0,0.3670855028059178,
+rep,Trial design,context,reserve_context,0.01403595606488923,0.15948668046491482,0,0,0.3409721050843688,
+season,Time,context,reserve_context,0.017915186226677853,0.12263134957799057,0,0,0.3256478237703376,
+planting_date,Time,context,reserve_context,0.05256102765032408,,0,0,0.2920488221202593,
+dmy_residue,Post-harvest response,proxy,excluded,0.7030453724677944,0.44757803315985545,0,0,0.2862253145541633,proxy_or_leakage;dictionary_exclude
+on_farm,Trial design,context,excluded,,,0,0,0.25,constant
+is_survey,Trial design,context,excluded,,,0,0,0.25,constant
+crop,Crop,context,excluded,,,0,0,0.25,constant
+yield_part,Target definition,context,excluded,,,0,0,0.25,constant
+yield_moisture,Target measurement,context,excluded,,,0,0,0.25,constant
+geo_from_source,Location,context,excluded,,,0,0,0.25,constant
+grain_P,Post-harvest response,proxy,excluded,0.16909778137016615,0.11646546847975728,0,0,-0.3064890406639884,proxy_or_leakage;dictionary_exclude
+residue_P,Post-harvest response,proxy,excluded,0.11251080093469959,0.056315565337922,0,0,-0.3818335765832793,proxy_or_leakage;dictionary_exclude
+treatment,Treatment,proxy,excluded,0.005034099253957769,0.18334164579960172,0,0,-0.40430189769703295,proxy_or_leakage;dictionary_exclude

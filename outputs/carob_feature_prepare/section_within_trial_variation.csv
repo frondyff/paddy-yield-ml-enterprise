@@ -1,0 +1,8 @@
+feature,min_unique_within_trial,median_unique_within_trial,max_unique_within_trial,trials_with_2plus_levels,n_trials_total
+K_fertilizer,1,1.0,1,0,13
+N_fertilizer,1,1.0,1,0,13
+P_fertilizer,1,2.0,2,12,13
+irrigated,1,1.0,1,0,13
+row_spacing,1,1.0,2,1,13
+treatment,1,2.0,2,12,13
+variety,12,32.0,75,13,13

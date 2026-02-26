@@ -1,0 +1,2 @@
+run_tag,dataset,treatment,n_rows,n_trials_total,n_trials_with_both_arms,confidence_level,caveats,n_trials,fixed_effect,fixed_se,fixed_ci_low,fixed_ci_high,random_effect,random_se,random_ci_low,random_ci_high,q,i2,tau2
+latest,CAROB AMAZXA,+P vs -P,1202,19,17,Medium,"assumption_based,high_heterogeneity",17,243.70213745243979,41.882347198699684,161.61273694298842,325.79153796189115,348.66150214329355,193.15202379569791,-29.916464496274386,727.2394687828614,288.7366038970936,94.45861737512766,552052.9875362

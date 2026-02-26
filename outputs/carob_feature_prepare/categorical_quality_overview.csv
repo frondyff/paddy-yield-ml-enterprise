@@ -1,0 +1,10 @@
+feature,missing_pct,cardinality,top_level_ratio,eta_squared_to_target,constant_flag,near_constant_flag
+crop,0.0,1,1.0,,True,True
+dataset_id,0.0,1,1.0,,True,True
+yield_part,0.0,1,1.0,,True,True
+country,0.0,8,0.456738768718802,0.37379587705257444,False,False
+location,0.0,11,0.33943427620632277,0.3880993195178412,False,False
+season,0.7487520798668885,2,0.9267886855241264,0.017915186226677853,False,False
+treatment,0.0,2,0.502495840266223,0.005034099253957769,False,False
+trial_id,0.0,19,0.12479201331114809,0.45767576067932153,False,False
+variety,0.0,83,0.03410981697171381,0.12948340590557816,False,False

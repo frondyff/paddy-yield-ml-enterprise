@@ -1,0 +1,16 @@
+{
+  "what_to_change": [
+    "Prioritize phosphorus treatment (+P) where baseline soil-P is low/moderate and trial analogs are comparable.",
+    "Use variety-specific responses; do not assume one universal lift across all varieties."
+  ],
+  "what_to_control_for": [
+    "Trial/site context (country, location, year/season)",
+    "Soil baseline (soil_P, soil_pH)"
+  ],
+  "what_to_avoid": [
+    "Single global recommendation without heterogeneity checks",
+    "Interpreting post-harvest outcomes (grain_P/residue_P) as pre-harvest predictors"
+  ],
+  "confidence_level": "Medium",
+  "caveats": "assumption_based,high_heterogeneity"
+}

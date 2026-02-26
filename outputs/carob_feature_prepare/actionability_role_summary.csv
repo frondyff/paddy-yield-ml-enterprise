@@ -1,0 +1,17 @@
+feature_group,final_role,n_features
+Crop,context,1
+Genotype,modifiable,1
+Identifier,proxy,2
+Location,context,5
+Management,context,1
+Management,modifiable,1
+Nutrient input,modifiable,3
+Post-harvest response,proxy,3
+Soil,context,2
+Target,target,1
+Target definition,context,1
+Target measurement,context,1
+Time,context,2
+Treatment,proxy,1
+Trial design,context,4
+Water regime,modifiable,2

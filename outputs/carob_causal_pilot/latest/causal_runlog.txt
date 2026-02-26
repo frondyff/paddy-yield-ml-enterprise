@@ -1,0 +1,11 @@
+run_tag=latest
+rows=1202
+n_trials_total=19
+n_trials_with_both_arms=17
+fixed_effect=243.70213745243979
+fixed_ci=(161.61273694298842, 325.79153796189115)
+random_effect=348.66150214329355
+random_ci=(-29.916464496274386, 727.2394687828614)
+i2=94.45861737512766
+confidence_level=Medium
+caveats=assumption_based,high_heterogeneity

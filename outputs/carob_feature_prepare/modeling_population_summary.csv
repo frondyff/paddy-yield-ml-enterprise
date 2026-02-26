@@ -1,0 +1,2 @@
+rows_raw,rows_feature_selection_base,rows_after_country_gate,rows_after_trial_gate,rows_removed_country_gate,rows_removed_trial_gate,countries_raw,countries_after_country_gate,trials_raw,trials_after_country_gate,trials_after_trial_gate,countries_dropped_by_gate,trials_dropped_by_gate
+1202,1202,1108,830,94,278,8,6,19,17,13,2,4

@@ -1,0 +1,370 @@
+{
+  "overall": {
+    "run_tag": "latest",
+    "dataset": "CAROB AMAZXA",
+    "treatment": "+P vs -P",
+    "n_rows": 1202,
+    "n_trials_total": 19,
+    "n_trials_with_both_arms": 17,
+    "confidence_level": "Medium",
+    "caveats": "assumption_based,high_heterogeneity",
+    "n_trials": 17,
+    "fixed_effect": 243.70213745243979,
+    "fixed_se": 41.882347198699684,
+    "fixed_ci_low": 161.61273694298842,
+    "fixed_ci_high": 325.79153796189115,
+    "random_effect": 348.66150214329355,
+    "random_se": 193.15202379569791,
+    "random_ci_low": -29.916464496274386,
+    "random_ci_high": 727.2394687828614,
+    "q": 288.7366038970936,
+    "i2": 94.45861737512766,
+    "tau2": 552052.9875362
+  },
+  "trial_effects": [
+    {
+      "trial_id": "1",
+      "n_rows": 78,
+      "n_treated": 39,
+      "n_control": 39,
+      "has_both_arms": true,
+      "effect_plusP_minusP": 944.0687179487186,
+      "se2": 48560.89045038238,
+      "country": "Benin",
+      "location": "Bohicon",
+      "soil_P_mean": 7.7
+    },
+    {
+      "trial_id": "10",
+      "n_rows": 63,
+      "n_treated": 31,
+      "n_control": 32,
+      "has_both_arms": true,
+      "effect_plusP_minusP": 841.5377419354841,
+      "se2": 27173.059718566597,
+      "country": "Benin",
+      "location": "Bohicon",
+      "soil_P_mean": 6.191501331019108
+    },
+    {
+      "trial_id": "11",
+      "n_rows": 66,
+      "n_treated": 33,
+      "n_control": 33,
+      "has_both_arms": true,
+      "effect_plusP_minusP": 382.7942424242424,
+      "se2": 7349.58599716483,
+      "country": "Burkina Faso",
+      "location": "Farako-Ba",
+      "soil_P_mean": 1.39948597907651
+    },
+    {
+      "trial_id": "12",
+      "n_rows": 63,
+      "n_treated": 31,
+      "n_control": 32,
+      "has_both_arms": true,
+      "effect_plusP_minusP": 944.7830241935487,
+      "se2": 47775.05979204897,
+      "country": "Nigeria",
+      "location": "Ikenne",
+      "soil_P_mean": 2.3113768488585493
+    },
+    {
+      "trial_id": "13",
+      "n_rows": 64,
+      "n_treated": 33,
+      "n_control": 31,
+      "has_both_arms": true,
+      "effect_plusP_minusP": 719.7155425219939,
+      "se2": 112757.7347193217,
+      "country": "Benin",
+      "location": "Cotonou",
+      "soil_P_mean": 5.9
+    },
+    {
+      "trial_id": "14",
+      "n_rows": 89,
+      "n_treated": 44,
+      "n_control": 45,
+      "has_both_arms": true,
+      "effect_plusP_minusP": 785.7284393939399,
+      "se2": 174870.08187087573,
+      "country": "Tanzania",
+      "location": "Dakawa",
+      "soil_P_mean": NaN
+    },
+    {
+      "trial_id": "15",
+      "n_rows": 86,
+      "n_treated": 43,
+      "n_control": 43,
+      "has_both_arms": true,
+      "effect_plusP_minusP": 1365.0241860465103,
+      "se2": 158701.85807155987,
+      "country": "Tanzania",
+      "location": "Ruvu",
+      "soil_P_mean": NaN
+    },
+    {
+      "trial_id": "16",
+      "n_rows": 39,
+      "n_treated": 13,
+      "n_control": 26,
+      "has_both_arms": true,
+      "effect_plusP_minusP": -427.75192307692305,
+      "se2": 191294.8325483097,
+      "country": "Japan",
+      "location": "Tsukuba",
+      "soil_P_mean": 8.266666666666667
+    },
+    {
+      "trial_id": "17",
+      "n_rows": 36,
+      "n_treated": 18,
+      "n_control": 18,
+      "has_both_arms": true,
+      "effect_plusP_minusP": 822.9055555555556,
+      "se2": 16617.260169970952,
+      "country": "Philippines",
+      "location": "Pangil",
+      "soil_P_mean": 4.099999999999999
+    },
+    {
+      "trial_id": "18",
+      "n_rows": 20,
+      "n_treated": 0,
+      "n_control": 20,
+      "has_both_arms": false,
+      "effect_plusP_minusP": NaN,
+      "se2": NaN,
+      "country": "Sri Lanka",
+      "location": "Bathalagoda",
+      "soil_P_mean": 2.6499999999999995
+    },
+    {
+      "trial_id": "19",
+      "n_rows": 19,
+      "n_treated": 10,
+      "n_control": 9,
+      "has_both_arms": true,
+      "effect_plusP_minusP": 2386.548222222222,
+      "se2": 417755.111173716,
+      "country": "Tanzania",
+      "location": "Dakawa",
+      "soil_P_mean": NaN
+    },
+    {
+      "trial_id": "2",
+      "n_rows": 39,
+      "n_treated": 39,
+      "n_control": 0,
+      "has_both_arms": false,
+      "effect_plusP_minusP": NaN,
+      "se2": NaN,
+      "country": "Burkina Faso",
+      "location": "Farako-Ba",
+      "soil_P_mean": 1.3999999999999997
+    },
+    {
+      "trial_id": "3",
+      "n_rows": 74,
+      "n_treated": 37,
+      "n_control": 37,
+      "has_both_arms": true,
+      "effect_plusP_minusP": 538.3248648648646,
+      "se2": 48573.79597550117,
+      "country": "Gambia",
+      "location": "Yundum",
+      "soil_P_mean": 4.8
+    },
+    {
+      "trial_id": "4",
+      "n_rows": 80,
+      "n_treated": 40,
+      "n_control": 40,
+      "has_both_arms": true,
+      "effect_plusP_minusP": 193.7559999999994,
+      "se2": 52581.08997705128,
+      "country": "Benin",
+      "location": "Cotonou",
+      "soil_P_mean": 9.0
+    },
+    {
+      "trial_id": "5",
+      "n_rows": 150,
+      "n_treated": 75,
+      "n_control": 75,
+      "has_both_arms": true,
+      "effect_plusP_minusP": -1139.3985333333321,
+      "se2": 18461.883522583543,
+      "country": "Benin",
+      "location": "Cotonou",
+      "soil_P_mean": 12.45
+    },
+    {
+      "trial_id": "6",
+      "n_rows": 38,
+      "n_treated": 19,
+      "n_control": 19,
+      "has_both_arms": true,
+      "effect_plusP_minusP": 309.75947368421055,
+      "se2": 8584.337175161589,
+      "country": "Philippines",
+      "location": "Pangil",
+      "soil_P_mean": 4.099999999999999
+    },
+    {
+      "trial_id": "7",
+      "n_rows": 84,
+      "n_treated": 42,
+      "n_control": 42,
+      "has_both_arms": true,
+      "effect_plusP_minusP": -397.62261904761954,
+      "se2": 28738.77476627537,
+      "country": "Nigeria",
+      "location": "Ibadan",
+      "soil_P_mean": NaN
+    },
+    {
+      "trial_id": "8",
+      "n_rows": 42,
+      "n_treated": 21,
+      "n_control": 21,
+      "has_both_arms": true,
+      "effect_plusP_minusP": -2006.3952380952383,
+      "se2": 58611.18983399094,
+      "country": "Benin",
+      "location": "Cotonou",
+      "soil_P_mean": 5.86626849162675
+    },
+    {
+      "trial_id": "9",
+      "n_rows": 72,
+      "n_treated": 36,
+      "n_control": 36,
+      "has_both_arms": true,
+      "effect_plusP_minusP": 637.9474999999998,
+      "se2": 204606.14030585322,
+      "country": "Benin",
+      "location": "Cotonou",
+      "soil_P_mean": 6.271009647867686
+    }
+  ],
+  "heterogeneity_country": [
+    {
+      "country": "Benin",
+      "n_rows": 549,
+      "n_trials": 7,
+      "n_treated": 275,
+      "n_control": 274,
+      "naive_effect_plusP_minusP": -34.366729396151186
+    },
+    {
+      "country": "Burkina Faso",
+      "n_rows": 105,
+      "n_trials": 2,
+      "n_treated": 72,
+      "n_control": 33,
+      "naive_effect_plusP_minusP": 1083.9727777777778
+    },
+    {
+      "country": "Gambia",
+      "n_rows": 74,
+      "n_trials": 1,
+      "n_treated": 37,
+      "n_control": 37,
+      "naive_effect_plusP_minusP": 538.3248648648646
+    },
+    {
+      "country": "Japan",
+      "n_rows": 39,
+      "n_trials": 1,
+      "n_treated": 13,
+      "n_control": 26,
+      "naive_effect_plusP_minusP": -427.75192307692305
+    },
+    {
+      "country": "Nigeria",
+      "n_rows": 147,
+      "n_trials": 2,
+      "n_treated": 73,
+      "n_control": 74,
+      "naive_effect_plusP_minusP": 179.79641243983724
+    },
+    {
+      "country": "Philippines",
+      "n_rows": 74,
+      "n_trials": 2,
+      "n_treated": 37,
+      "n_control": 37,
+      "naive_effect_plusP_minusP": 559.3981081081081
+    },
+    {
+      "country": "Tanzania",
+      "n_rows": 194,
+      "n_trials": 3,
+      "n_treated": 97,
+      "n_control": 97,
+      "naive_effect_plusP_minusP": 1191.5077319587626
+    }
+  ],
+  "heterogeneity_soilP_bins": [
+    {
+      "soil_P_bin": "(1.342, 4.1]",
+      "n_rows": 221,
+      "n_trials": 7,
+      "n_treated": 164,
+      "n_control": 57,
+      "naive_effect_plusP_minusP": 489.8379336756527,
+      "soil_P_min": 1.343438052446,
+      "soil_P_max": 4.1
+    },
+    {
+      "soil_P_bin": "(4.1, 5.9]",
+      "n_rows": 136,
+      "n_trials": 5,
+      "n_treated": 91,
+      "n_control": 45,
+      "naive_effect_plusP_minusP": 1713.9402417582419,
+      "soil_P_min": 4.5,
+      "soil_P_max": 5.9
+    },
+    {
+      "soil_P_bin": "(5.9, 7.753]",
+      "n_rows": 166,
+      "n_trials": 4,
+      "n_treated": 145,
+      "n_control": 21,
+      "naive_effect_plusP_minusP": -1458.7226042692937,
+      "soil_P_min": 6.9,
+      "soil_P_max": 7.7530670799156
+    },
+    {
+      "soil_P_bin": "(7.753, 18.0]",
+      "n_rows": 153,
+      "n_trials": 4,
+      "n_treated": 65,
+      "n_control": 88,
+      "naive_effect_plusP_minusP": -1135.4969912587403,
+      "soil_P_min": 7.8,
+      "soil_P_max": 18.0
+    }
+  ],
+  "action_playbook": {
+    "what_to_change": [
+      "Prioritize phosphorus treatment (+P) where baseline soil-P is low/moderate and trial analogs are comparable.",
+      "Use variety-specific responses; do not assume one universal lift across all varieties."
+    ],
+    "what_to_control_for": [
+      "Trial/site context (country, location, year/season)",
+      "Soil baseline (soil_P, soil_pH)"
+    ],
+    "what_to_avoid": [
+      "Single global recommendation without heterogeneity checks",
+      "Interpreting post-harvest outcomes (grain_P/residue_P) as pre-harvest predictors"
+    ],
+    "confidence_level": "Medium",
+    "caveats": "assumption_based,high_heterogeneity"
+  }
+}
