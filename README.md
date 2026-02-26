@@ -62,7 +62,21 @@ make run-carob-baseline
 make run-carob-feature-prepare
 make run-carob-model-compare
 make run-carob-causal-pilot
+make help
 ```
+
+## Legacy (paddy) scope
+Paddy pipelines remain in the repository as legacy reference and compatibility paths.
+They are not the primary analysis flow and should not be used as default project entrypoints.
+
+Legacy wrappers and pipelines include:
+- `scripts/run_baseline.py`
+- `scripts/run_feature_prepare.py`
+- `scripts/run_model_compare.py`
+- `scripts/run_model_select_tune.py`
+- `scripts/run_ablation_eval.py`
+- `scripts/run_interpretability_report.py`
+- `scripts/run_causal_pilot.py`
 
 ## Quality checks
 ```bash

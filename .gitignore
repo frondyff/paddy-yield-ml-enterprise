@@ -27,10 +27,27 @@ Thumbs.db
 # Generated outputs
 outputs/*
 !outputs/.gitkeep
+!outputs/carob_baseline/
+!outputs/carob_baseline/.gitkeep
+!outputs/carob_feature_prepare/
+!outputs/carob_feature_prepare/.gitkeep
+!outputs/carob_model_compare/
+!outputs/carob_model_compare/.gitkeep
+!outputs/carob_causal_pilot/
+!outputs/carob_causal_pilot/.gitkeep
+# Legacy placeholders
 !outputs/baseline/
 !outputs/baseline/.gitkeep
 !outputs/feature_prepare/
 !outputs/feature_prepare/.gitkeep
+outputs/carob_baseline/*
+!outputs/carob_baseline/.gitkeep
+outputs/carob_feature_prepare/*
+!outputs/carob_feature_prepare/.gitkeep
+outputs/carob_model_compare/*
+!outputs/carob_model_compare/.gitkeep
+outputs/carob_causal_pilot/*
+!outputs/carob_causal_pilot/.gitkeep
 outputs/baseline/*
 !outputs/baseline/.gitkeep
 outputs/feature_prepare/*

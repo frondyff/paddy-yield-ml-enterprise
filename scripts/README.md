@@ -38,5 +38,14 @@ uv run python scripts/run_carob_causal_pilot.py --run-tag v1
 - `outputs/carob_causal_pilot/`
 
 ## Notes
-- Legacy paddy scripts are still present but are no longer the project’s primary path.
+- Legacy paddy scripts are still present but are no longer the project's primary path.
 - Causal outputs are assumption-based and should always be interpreted with caveats.
+
+## Legacy wrappers (paddy reference)
+- `run_baseline.py`
+- `run_feature_prepare.py`
+- `run_model_compare.py`
+- `run_model_select_tune.py`
+- `run_ablation_eval.py`
+- `run_interpretability_report.py`
+- `run_causal_pilot.py`
