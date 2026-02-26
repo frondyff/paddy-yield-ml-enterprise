@@ -29,6 +29,7 @@ Build a reproducible decision-support workflow that can:
 - `outputs/carob_feature_prepare/`
 - `outputs/carob_model_compare/`
 - `outputs/carob_causal_pilot/`
+- `outputs/carob_interpretability/`
 
 ## Validation philosophy (CAROB)
 - Predictive robustness: Leave-One-Trial-Out grouped evaluation.
@@ -46,6 +47,7 @@ uv run python src/paddy_yield_ml/pipelines/carob_baseline.py
 uv run python src/paddy_yield_ml/pipelines/carob_feature_prepare.py
 uv run python src/paddy_yield_ml/pipelines/carob_model_compare.py
 uv run python src/paddy_yield_ml/pipelines/carob_causal_pilot.py --run-tag v1
+uv run python src/paddy_yield_ml/pipelines/carob_interpretability_report.py --run-tag latest
 ```
 
 Wrappers:
@@ -54,6 +56,7 @@ python scripts/run_carob_baseline.py
 python scripts/run_carob_feature_prepare.py
 python scripts/run_carob_model_compare.py
 python scripts/run_carob_causal_pilot.py
+python scripts/run_carob_interpretability_report.py
 ```
 
 Make targets:
@@ -62,6 +65,7 @@ make run-carob-baseline
 make run-carob-feature-prepare
 make run-carob-model-compare
 make run-carob-causal-pilot
+make run-carob-interpretability
 make help
 ```
 

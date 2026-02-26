@@ -1,0 +1,6 @@
+scenario=modifiable_plus_context
+rows_explained=160
+features_used=17
+params_source=catboost_scenario_best
+top_feature=location
+expected_value=2672.176371915095

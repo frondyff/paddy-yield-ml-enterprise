@@ -37,6 +37,8 @@ outputs/*
 !outputs/carob_model_compare/**
 !outputs/carob_causal_pilot/
 !outputs/carob_causal_pilot/**
+!outputs/carob_interpretability/
+!outputs/carob_interpretability/**
 
 # Legacy outputs (kept for compatibility)
 !outputs/baseline/

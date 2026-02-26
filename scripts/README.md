@@ -10,6 +10,7 @@ uv run python scripts/run_carob_baseline.py
 uv run python scripts/run_carob_feature_prepare.py
 uv run python scripts/run_carob_model_compare.py
 uv run python scripts/run_carob_causal_pilot.py --run-tag v1
+uv run python scripts/run_carob_interpretability_report.py --run-tag latest
 ```
 
 ## What each script does
@@ -31,11 +32,16 @@ uv run python scripts/run_carob_causal_pilot.py --run-tag v1
 - Estimates +P vs -P treatment effect with trial-aware meta-analysis.
 - Produces heterogeneity diagnostics and action-playbook payloads.
 
+### `run_carob_interpretability_report.py`
+- Trains a CAROB CatBoost explainer model on the selected CAROB scenario.
+- Produces global SHAP ranking and a markdown top-feature explanation.
+
 ## Output folders
 - `outputs/carob_baseline/`
 - `outputs/carob_feature_prepare/`
 - `outputs/carob_model_compare/`
 - `outputs/carob_causal_pilot/`
+- `outputs/carob_interpretability/`
 
 ## Notes
 - Legacy paddy scripts are still present but are no longer the project's primary path.

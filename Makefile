@@ -1,6 +1,6 @@
 UV ?= uv
 
-.PHONY: sync install lock help run-carob-baseline run-carob-feature-prepare run-carob-model-compare run-carob-causal-pilot run-baseline run-feature-prepare run-model-compare run-causal-pilot run-model-select-tune run-ablation-eval run-interpretability-report test lint format typecheck verify clean
+.PHONY: sync install lock help run-carob-baseline run-carob-feature-prepare run-carob-model-compare run-carob-causal-pilot run-carob-interpretability run-baseline run-feature-prepare run-model-compare run-causal-pilot run-model-select-tune run-ablation-eval run-interpretability-report test lint format typecheck verify clean
 
 sync:
 	$(UV) sync --all-groups
@@ -16,6 +16,7 @@ help:
 	@echo "  make run-carob-feature-prepare"
 	@echo "  make run-carob-model-compare"
 	@echo "  make run-carob-causal-pilot"
+	@echo "  make run-carob-interpretability"
 	@echo ""
 	@echo "Legacy paddy targets (kept for compatibility):"
 	@echo "  make run-model-select-tune"
@@ -33,6 +34,9 @@ run-carob-model-compare:
 
 run-carob-causal-pilot:
 	$(UV) run python src/paddy_yield_ml/pipelines/carob_causal_pilot.py
+
+run-carob-interpretability:
+	$(UV) run python src/paddy_yield_ml/pipelines/carob_interpretability_report.py
 
 # Deprecated aliases: prefer run-carob-* targets for active CAROB workflows.
 run-baseline:
