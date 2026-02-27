@@ -1,6 +1,6 @@
-UV ?= uv
+﻿UV ?= uv
 
-.PHONY: sync install lock help run-carob-baseline run-carob-feature-prepare run-carob-model-compare run-carob-causal-pilot run-carob-interpretability run-baseline run-feature-prepare run-model-compare run-causal-pilot run-model-select-tune run-ablation-eval run-interpretability-report test lint format typecheck verify clean
+.PHONY: sync install lock help run-carob-baseline run-carob-feature-prepare run-carob-model-compare run-carob-interpretability run-carob-interpretability-report run-carob-rule-causal-aipw run-baseline run-feature-prepare run-model-compare run-causal-pilot run-model-select-tune run-ablation-eval run-interpretability-report test lint format typecheck verify clean
 
 sync:
 	$(UV) sync --all-groups
@@ -15,8 +15,8 @@ help:
 	@echo "  make run-carob-baseline"
 	@echo "  make run-carob-feature-prepare"
 	@echo "  make run-carob-model-compare"
-	@echo "  make run-carob-causal-pilot"
 	@echo "  make run-carob-interpretability"
+	@echo "  make run-carob-rule-causal-aipw"
 	@echo ""
 	@echo "Legacy paddy targets (kept for compatibility):"
 	@echo "  make run-model-select-tune"
@@ -32,11 +32,14 @@ run-carob-feature-prepare:
 run-carob-model-compare:
 	$(UV) run python src/paddy_yield_ml/pipelines/carob_model_compare.py
 
-run-carob-causal-pilot:
-	$(UV) run python src/paddy_yield_ml/pipelines/carob_causal_pilot.py
-
 run-carob-interpretability:
-	$(UV) run python src/paddy_yield_ml/pipelines/carob_interpretability_report.py
+	$(UV) run python src/paddy_yield_ml/pipelines/carob_interpretability.py --run-tag iter3_defensible_v5
+
+run-carob-interpretability-report:
+	$(UV) run python src/paddy_yield_ml/pipelines/carob_interpretability_report.py --run-tag latest
+
+run-carob-rule-causal-aipw:
+	$(UV) run python src/paddy_yield_ml/pipelines/carob_rule_causal_aipw.py --run-tag rule_aipw_v2
 
 # Deprecated aliases: prefer run-carob-* targets for active CAROB workflows.
 run-baseline:
@@ -52,8 +55,8 @@ run-model-compare:
 	$(MAKE) run-carob-model-compare
 
 run-causal-pilot:
-	@echo "Deprecated alias: use 'make run-carob-causal-pilot'"
-	$(MAKE) run-carob-causal-pilot
+	@echo "Deprecated alias: use 'make run-carob-rule-causal-aipw'"
+	$(MAKE) run-carob-rule-causal-aipw
 
 run-model-select-tune:
 	$(UV) run python src/paddy_yield_ml/pipelines/model_select_tune.py
