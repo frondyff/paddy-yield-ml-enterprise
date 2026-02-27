@@ -57,7 +57,7 @@ def parse_seed_list(raw: str) -> list[int]:
     out = [int(x.strip()) for x in str(raw).split(",") if x.strip()]
     if not out:
         raise ValueError("At least one seed is required.")
-    return cm.dedupe_keep_order(out)
+    return list(dict.fromkeys(out))
 
 
 def load_role_map(path: Path, frame_cols: list[str]) -> pd.DataFrame:
@@ -1362,7 +1362,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     params = load_best_catboost_params(winners_path)
     stability_seeds = parse_seed_list(args.stability_seeds)
     if int(args.seed) not in stability_seeds:
-        stability_seeds = cm.dedupe_keep_order([int(args.seed)] + stability_seeds)
+        stability_seeds = list(dict.fromkeys([int(args.seed)] + stability_seeds))
 
     feature_set_df = pd.DataFrame(
         [{"scenario": args.scenario, "rank_in_scenario": i, "feature": f} for i, f in enumerate(features, start=1)]

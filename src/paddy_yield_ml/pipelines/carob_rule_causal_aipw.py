@@ -55,7 +55,7 @@ def parse_seed_list(raw: str) -> list[int]:
     out = [int(x.strip()) for x in str(raw).split(",") if x.strip()]
     if not out:
         raise ValueError("At least one seed is required.")
-    return cm.dedupe_keep_order(out)
+    return list(dict.fromkeys(out))
 
 
 def parse_status_list(raw: str) -> list[str]:
@@ -591,7 +591,11 @@ def summarize_pair_estimates(seed_df: pd.DataFrame) -> pd.DataFrame:
         return pd.DataFrame()
 
     rows: list[dict[str, Any]] = []
-    for (rule_id, country), grp in seed_df.groupby(["rule_id", "country"], dropna=False):
+    for pair_key, grp in seed_df.groupby(["rule_id", "country"], dropna=False):
+        if isinstance(pair_key, tuple) and len(pair_key) == 2:
+            rule_id, country = pair_key
+        else:
+            rule_id, country = pair_key, ""
         grp = grp.sort_values("seed").reset_index(drop=True)
         ref = grp.iloc[0]
         ate_vals = pd.to_numeric(grp["ate_aipw"], errors="coerce")

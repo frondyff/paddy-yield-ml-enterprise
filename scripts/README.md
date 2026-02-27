@@ -1,4 +1,4 @@
-﻿# Scripts Guide (CAROB-first)
+# Scripts Guide (CAROB-first)
 
 These runner scripts are shortcut buttons for the CAROB workflow.
 

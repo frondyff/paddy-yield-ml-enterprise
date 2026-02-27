@@ -1,4 +1,4 @@
-﻿# CAROB Rice Decision Support Using Interpretable Enterprise ML
+# CAROB Rice Decision Support Using Interpretable Enterprise ML
 
 McGill MMA Enterprise Analytics Group Project
 

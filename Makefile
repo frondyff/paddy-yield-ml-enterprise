@@ -1,4 +1,4 @@
-﻿UV ?= uv
+UV ?= uv
 
 .PHONY: sync install lock help run-carob-baseline run-carob-feature-prepare run-carob-model-compare run-carob-interpretability run-carob-interpretability-report run-carob-rule-causal-aipw run-baseline run-feature-prepare run-model-compare run-causal-pilot run-model-select-tune run-ablation-eval run-interpretability-report test lint format typecheck verify clean
 
