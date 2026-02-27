@@ -16,7 +16,6 @@ from catboost import CatBoostRegressor
 from sklearn.pipeline import Pipeline
 from sklearn.tree import DecisionTreeRegressor
 
-
 # -----------------------------------------------------------------------------
 # Project root and imports
 # -----------------------------------------------------------------------------
@@ -57,7 +56,6 @@ if SRC_DIR.exists() and str(SRC_DIR) not in sys.path:
 
 from paddy_yield_ml.pipelines import carob_common as cc  # noqa: E402
 from paddy_yield_ml.pipelines import carob_model_compare as cm  # noqa: E402
-
 
 # -----------------------------------------------------------------------------
 # Constants
@@ -552,7 +550,9 @@ def load_serving_bundle(project_root_str: str, scenario: str, model_compare_dir:
     modeling = modeling.loc[:, ~modeling.columns.duplicated()].copy()
     modeling = modeling[modeling[cc.TARGET_COL].notna() & modeling[cc.GROUP_COL].notna()].reset_index(drop=True)
 
-    modifiable = candidates.loc[candidates["status"].astype(str) == "candidate_modifiable", "feature"].astype(str).tolist()
+    modifiable = (
+        candidates.loc[candidates["status"].astype(str) == "candidate_modifiable", "feature"].astype(str).tolist()
+    )
     modifiable = [f for f in cm.dedupe_keep_order(modifiable) if f in features]
     context = [f for f in features if f not in modifiable]
 
@@ -900,7 +900,8 @@ def render_feature_input(
         all_levels = _numeric_unique_levels(reference_all, max_levels=10)
 
         if context_mode:
-            default = _safe_default_numeric(None, country_num if not country_num.empty else all_num, fallback=(lo + hi) / 2.0)
+            context_ref = country_num if not country_num.empty else all_num
+            default = _safe_default_numeric(None, context_ref, fallback=(lo + hi) / 2.0)
         else:
             default = _safe_default_numeric(current_value, all_num, fallback=(lo + hi) / 2.0)
 
@@ -1163,12 +1164,24 @@ def friendly_country_status(status: str) -> str:
 
 def friendly_decision_reason(reason: str) -> str:
     mapping = {
-        "passes_effect_significance_stability_overlap_balance": "Strong causal diagnostics across effect, overlap, and balance.",
-        "promising_signal_but_low_trial_diversity_in_one_arm": "Promising effect but too little trial diversity in one treatment arm.",
-        "works_here_but_some_causal_diagnostics_not_fully_met": "Predictive signal transfers, but some causal diagnostics are not fully met.",
-        "predictive_rule_direction_conflicts_in_country": "Direction conflicts with country-specific predictive evidence.",
-        "causal_signal_present_but_predictive_transfer_was_unstable": "Causal estimate exists, but predictive transfer was unstable.",
-        "unstable_or_small_effect_and_causal_diagnostics_weak": "Effect appears unstable/small and diagnostics are weak.",
+        "passes_effect_significance_stability_overlap_balance": (
+            "Strong causal diagnostics across effect, overlap, and balance."
+        ),
+        "promising_signal_but_low_trial_diversity_in_one_arm": (
+            "Promising effect but too little trial diversity in one treatment arm."
+        ),
+        "works_here_but_some_causal_diagnostics_not_fully_met": (
+            "Predictive signal transfers, but some causal diagnostics are not fully met."
+        ),
+        "predictive_rule_direction_conflicts_in_country": (
+            "Direction conflicts with country-specific predictive evidence."
+        ),
+        "causal_signal_present_but_predictive_transfer_was_unstable": (
+            "Causal estimate exists, but predictive transfer was unstable."
+        ),
+        "unstable_or_small_effect_and_causal_diagnostics_weak": (
+            "Effect appears unstable/small and diagnostics are weak."
+        ),
         "unsupported_status": "Status not supported for recommendation.",
     }
     return mapping.get(reason, reason.replace("_", " "))
@@ -1450,7 +1463,8 @@ def main() -> None:
             if not scoped.empty:
                 rows = scoped
         rows = rows.sort_values(["r2", "rmse"], ascending=[False, True]).reset_index(drop=True)
-        show_cols = [c for c in ["model", "r2", "rmse", "mae", "n_train", "n_test", "n_trials_in_test"] if c in rows.columns]
+        summary_cols = ["model", "r2", "rmse", "mae", "n_train", "n_test", "n_trials_in_test"]
+        show_cols = [c for c in summary_cols if c in rows.columns]
         show_df = rows[show_cols].head(6).copy()
         rename_map = {
             "model": "Model",
@@ -1517,11 +1531,9 @@ def main() -> None:
     st.divider()
     st.subheader("5) Decision Guidance and Safeguards")
 
-    rules_source = "interpretability"
     rules_df = interpretability.rules_df.copy()
     using_surrogate = False
     if rules_df.empty:
-        rules_source = "fallback_surrogate"
         using_surrogate = True
         rules_df = bundle["surrogate_rules"]["rules"].copy()
 

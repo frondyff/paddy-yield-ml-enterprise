@@ -71,10 +71,10 @@ test:
 	$(UV) run pytest
 
 lint:
-	$(UV) run ruff check src tests scripts
+	$(UV) run ruff check src tests scripts streamlit_app.py
 
 format:
-	$(UV) run ruff format src tests scripts
+	$(UV) run ruff format src tests scripts streamlit_app.py
 
 typecheck:
 	$(UV) run ty check src tests
