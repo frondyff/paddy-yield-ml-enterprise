@@ -1,0 +1,26 @@
+rule_id,country,n_seeds,support_mean,support_std,support_nonzero_seeds,lift_mean,lift_std,pos_lift_seeds,neg_lift_seeds,support_seed_rate,same_sign_rate,stable_sign,expected_sign,observed_sign,generalization_status
+R1,Burkina Faso,3,0.0,0.0,0,,,0,0,0.0,0.0,False,-1,0,insufficient_evidence
+R1,Philippines,3,0.0,0.0,0,,,0,0,0.0,0.0,False,-1,0,insufficient_evidence
+R1,Japan,3,0.7619047619047619,0.08247860988423221,3,70.46301587301589,397.03815409635234,1,2,1.0,0.6666666666666666,False,-1,1,unstable_or_small_effect
+R1,Benin,3,0.3115264797507788,0.00539579690831426,3,-630.7090332961276,296.0811755864992,0,3,1.0,1.0,True,-1,-1,works_here
+R1,Nigeria,3,0.5277777777777778,0.04811252243246882,3,-595.0331746031743,28.08711038921697,0,3,1.0,1.0,True,-1,-1,works_here
+R2,Burkina Faso,3,0.0,0.0,0,,,0,0,0.0,0.0,False,1,0,insufficient_evidence
+R2,Philippines,3,0.0,0.0,0,,,0,0,0.0,0.0,False,1,0,insufficient_evidence
+R2,Benin,3,0.3333333333333333,0.00539579690831426,3,63.694000741729724,272.5222123130902,1,2,1.0,0.6666666666666666,False,1,1,unstable_or_small_effect
+R2,Japan,3,0.23809523809523805,0.08247860988423225,3,-34.43476190476182,1117.818555642845,2,1,1.0,0.6666666666666666,False,1,-1,unstable_or_small_effect
+R2,Nigeria,3,0.47222222222222227,0.0481125224324688,3,678.6506666666668,172.67428143625747,3,0,1.0,1.0,True,1,1,works_here
+R3,Benin,3,0.205607476635514,0.009345794392523366,3,-95.44361962341266,68.42967553242755,0,3,1.0,1.0,True,1,-1,conflicts_here
+R3,Burkina Faso,3,0.0,0.0,0,,,0,0,0.0,0.0,False,1,0,insufficient_evidence
+R3,Japan,3,0.0,0.0,0,,,0,0,0.0,0.0,False,1,0,insufficient_evidence
+R3,Nigeria,3,0.0,0.0,0,,,0,0,0.0,0.0,False,1,0,insufficient_evidence
+R3,Philippines,3,0.0,0.0,0,,,0,0,0.0,0.0,False,1,0,insufficient_evidence
+R4,Burkina Faso,3,0.0,0.0,0,,,0,0,0.0,0.0,False,1,0,insufficient_evidence
+R4,Japan,3,0.0,0.0,0,,,0,0,0.0,0.0,False,1,0,insufficient_evidence
+R4,Nigeria,3,0.0,0.0,0,,,0,0,0.0,0.0,False,1,0,insufficient_evidence
+R4,Philippines,3,0.0,0.0,0,,,0,0,0.0,0.0,False,1,0,insufficient_evidence
+R4,Benin,3,0.14953271028037382,0.009345794392523366,3,1311.1070640003663,253.39174346219292,3,0,1.0,1.0,True,1,1,works_here
+R5,Burkina Faso,3,0.65,0.049999999999999975,3,445.22971004883993,28.000406637666202,3,0,1.0,1.0,True,-1,1,conflicts_here
+R5,Benin,3,0.0,0.0,0,,,0,0,0.0,0.0,False,-1,0,insufficient_evidence
+R5,Japan,3,0.0,0.0,0,,,0,0,0.0,0.0,False,-1,0,insufficient_evidence
+R5,Nigeria,3,0.0,0.0,0,,,0,0,0.0,0.0,False,-1,0,insufficient_evidence
+R5,Philippines,3,0.0,0.0,0,,,0,0,0.0,0.0,False,-1,0,insufficient_evidence

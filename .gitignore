@@ -39,6 +39,8 @@ outputs/*
 !outputs/carob_causal_pilot/**
 !outputs/carob_interpretability/
 !outputs/carob_interpretability/**
+!outputs/carob_rule_causal_aipw/
+!outputs/carob_rule_causal_aipw/**
 
 # Legacy outputs (kept for compatibility)
 !outputs/baseline/

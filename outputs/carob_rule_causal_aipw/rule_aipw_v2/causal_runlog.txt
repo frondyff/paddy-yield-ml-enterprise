@@ -1,0 +1,9 @@
+run_tag=rule_aipw_v2
+interp_dir=/tmp/carob-int-causal-review/outputs/carob_interpretability/iter3_defensible_v5
+seeds=[42, 52, 62]
+primary_statuses=['works_here']
+secondary_statuses=['conflicts_here', 'unstable_or_small_effect']
+pairs_cataloged=9
+pairs_ready=7
+pair_seed_results=21
+scorecard_rows=7

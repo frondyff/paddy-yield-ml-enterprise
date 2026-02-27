@@ -1,0 +1,17 @@
+run_tag=iter3_defensible_v5
+scenario=modifiable_plus_context
+seed=42
+stability_seeds=[42, 52, 62]
+rows_total=830
+rows_train=670
+rows_test=160
+features_used=17
+modifiable_numeric_rule_features=6
+iteration1_r2_test=0.521876
+iteration1_rmse_test=960.129419
+iteration1_mae_test=692.922276
+top10_shap_perm_overlap_ratio=1.0000
+iteration3_rules_count=5
+iteration3_avg_rule_sign_match=0.9333
+iteration3_countries_with_working_rules=4
+defensible_case=True

@@ -1,0 +1,4 @@
+iteration,r2_test,rmse_test,mae_test,rules_count,top10_shap_perm_overlap_ratio,notes
+iteration1,0.5218764054592377,960.129419128404,692.9222764173447,8,1.0,Baseline explainability package generated.
+iteration2,,,,5,1.0,"{""abs_lift_min"": 100.0, ""mode"": ""threshold_pass"", ""sign_min"": 0.5, ""support_min"": 0.05}"
+iteration3,,,,5,1.0,"{""abs_lift_min"": 50.0, ""mode"": ""fallback_top_score"", ""sign_min"": 0.67, ""support_min"": 0.05}"

@@ -1,0 +1,6 @@
+rule_id,countries_seen,countries_works,countries_conflicts,countries_insufficient,countries_unstable_or_small_effect
+R1,5,2,0,2,1
+R2,5,1,0,2,2
+R3,5,0,1,4,0
+R4,5,1,0,4,0
+R5,5,0,1,4,0

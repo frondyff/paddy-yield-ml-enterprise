@@ -1,0 +1,10 @@
+rule_id,country,generalization_status,analysis_tier,n_total,n_treated,n_control,treated_rate,n_trials,n_trials_treated,n_trials_control,estimable_by_gates
+R1,Benin,works_here,primary,549,178,371,0.3242258652094718,7,5,7,True
+R1,Nigeria,works_here,primary,147,32,115,0.21768707482993196,2,1,2,True
+R2,Nigeria,works_here,primary,147,31,116,0.2108843537414966,2,1,2,True
+R4,Benin,works_here,primary,549,96,453,0.17486338797814208,7,2,7,True
+R1,Japan,unstable_or_small_effect,secondary,39,26,13,0.6666666666666666,1,1,1,False
+R2,Benin,unstable_or_small_effect,secondary,549,179,370,0.32604735883424407,7,5,7,True
+R2,Japan,unstable_or_small_effect,secondary,39,13,26,0.3333333333333333,1,1,1,False
+R3,Benin,conflicts_here,secondary,549,96,453,0.17486338797814208,7,2,7,True
+R5,Burkina Faso,conflicts_here,secondary,105,72,33,0.6857142857142857,2,2,1,True

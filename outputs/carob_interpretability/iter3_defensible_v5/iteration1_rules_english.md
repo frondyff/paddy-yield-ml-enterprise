@@ -1,0 +1,10 @@
+# Iteration 1 Rule Explanations (Plain English)
+
+- **R1**: If Irrigation indicator is Yes/1; and Potassium input (rate) is above 36.00; and Flooding condition is No/0; and Phosphorus input rate (rate) is at or below 11.00, this segment shows **lower yield by -311.4 kg/ha** vs baseline (support: 28.1%).
+- **R2**: If Irrigation indicator is Yes/1; and Potassium input (rate) is above 36.00; and Flooding condition is No/0; and Phosphorus input rate (rate) is above 11.00, this segment shows **higher yield by +348.8 kg/ha** vs baseline (support: 26.9%).
+- **R3**: If Irrigation indicator is Yes/1; and Potassium input (rate) is above 36.00; and Flooding condition is Yes/1; and Phosphorus input rate (rate) is above 15.00, this segment shows **higher yield by +360.3 kg/ha** vs baseline (support: 13.1%).
+- **R4**: If Irrigation indicator is Yes/1; and Potassium input (rate) is above 36.00; and Flooding condition is Yes/1; and Phosphorus input rate (rate) is at or below 15.00, this segment shows **higher yield by +1957.0 kg/ha** vs baseline (support: 10.6%).
+- **R5**: If Irrigation indicator is No/0; and Phosphorus input rate (rate) is above 15.00, this segment shows **lower yield by -788.8 kg/ha** vs baseline (support: 8.1%).
+- **R6**: If Irrigation indicator is Yes/1; and Potassium input (rate) is at or below 36.00; and Phosphorus input rate (rate) is above 15.00, this segment shows **lower yield by -935.7 kg/ha** vs baseline (support: 4.4%).
+- **R7**: If Irrigation indicator is Yes/1; and Potassium input (rate) is at or below 36.00; and Phosphorus input rate (rate) is at or below 15.00, this segment shows **lower yield by -1433.9 kg/ha** vs baseline (support: 4.4%).
+- **R8**: If Irrigation indicator is No/0; and Phosphorus input rate (rate) is at or below 15.00, this segment shows **lower yield by -2139.8 kg/ha** vs baseline (support: 4.4%).

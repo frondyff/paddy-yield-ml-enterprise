@@ -1,0 +1,6 @@
+rule_id,confidence_level,caveat_labels
+R4,Medium,"associative_only,requires_causal_validation"
+R5,Medium,"associative_only,requires_causal_validation"
+R2,High,"associative_only,requires_causal_validation"
+R3,High,"associative_only,requires_causal_validation"
+R1,Low,"associative_only,requires_causal_validation,stability_risk"

@@ -1,0 +1,3 @@
+rule_id,country,reason
+R1,Japan,failed_readiness_gates
+R2,Japan,failed_readiness_gates
