@@ -1,11 +1,19 @@
 {
-  "data_path": "/home/frondy/code/paddy-yield-ml-enterprise/data/raw/paddydataset.csv",
+  "workflow": "carob_primary",
+  "data_path": "data/input/carob_amazxa.csv",
+  "metadata": {
+    "data_dictionary": "data/metadata/data_dictionary_carob_amazxa.csv",
+    "meta_file": "data/metadata/carob_amazxa_meta.csv"
+  },
+  "run_tags": {
+    "interpretability": "iter3_defensible_v5",
+    "causal": "rule_aipw_v2"
+  },
   "outputs": {
-    "baseline": "/home/frondy/code/paddy-yield-ml-enterprise/outputs/baseline",
-    "feature_prepare": "/home/frondy/code/paddy-yield-ml-enterprise/outputs/feature_prepare",
-    "model_compare": "/home/frondy/code/paddy-yield-ml-enterprise/outputs/model_compare",
-    "model_select_tune": "/home/frondy/code/paddy-yield-ml-enterprise/outputs/model_select_tune",
-    "ablation_eval": "/home/frondy/code/paddy-yield-ml-enterprise/outputs/ablation_eval",
-    "interpretability": "/home/frondy/code/paddy-yield-ml-enterprise/outputs/interpretability"
+    "feature_prepare": "outputs/carob_feature_prepare",
+    "model_compare": "outputs/carob_model_compare",
+    "model_tune_top2": "outputs/carob_model_tune_top2",
+    "interpretability": "outputs/carob_interpretability/iter3_defensible_v5",
+    "causal_rule_aipw": "outputs/carob_rule_causal_aipw/rule_aipw_v2"
   }
 }
