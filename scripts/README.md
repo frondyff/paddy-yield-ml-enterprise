@@ -9,8 +9,8 @@ From project root:
 uv run python scripts/run_carob_baseline.py
 uv run python scripts/run_carob_feature_prepare.py
 uv run python scripts/run_carob_model_compare.py
-uv run python scripts/run_carob_causal_pilot.py --run-tag v1
-uv run python scripts/run_carob_interpretability_report.py --run-tag latest
+uv run python scripts/run_carob_interpretability.py --run-tag iter3_defensible_v5
+uv run python scripts/run_carob_rule_causal_aipw.py --run-tag rule_aipw_v2
 ```
 
 ## What each script does
@@ -28,20 +28,23 @@ uv run python scripts/run_carob_interpretability_report.py --run-tag latest
 - Compares models across feature scenarios.
 - Uses Leave-One-Trial-Out validation for generalization across trials.
 
-### `run_carob_causal_pilot.py`
-- Estimates +P vs -P treatment effect with trial-aware meta-analysis.
-- Produces heterogeneity diagnostics and action-playbook payloads.
+### `run_carob_interpretability.py`
+- Runs the iterative interpretability workflow (SHAP, permutation, rules, country diagnostics).
+- Produces a defensible rule set and causal handoff outputs.
 
-### `run_carob_interpretability_report.py`
-- Trains a CAROB CatBoost explainer model on the selected CAROB scenario.
-- Produces global SHAP ranking and a markdown top-feature explanation.
+### `run_carob_rule_causal_aipw.py`
+- Estimates rule-as-treatment effects using AIPW with trial-aware diagnostics.
+- Produces pair diagnostics, scorecards, and playbook overlay outputs.
+
+### `run_carob_interpretability_report.py` (optional)
+- Runs a lightweight SHAP report pipeline for quick summaries.
 
 ## Output folders
 - `outputs/carob_baseline/`
 - `outputs/carob_feature_prepare/`
 - `outputs/carob_model_compare/`
-- `outputs/carob_causal_pilot/`
 - `outputs/carob_interpretability/`
+- `outputs/carob_rule_causal_aipw/rule_aipw_v2/`
 
 ## Notes
 - Legacy paddy scripts are still present but are no longer the project's primary path.
