@@ -65,6 +65,21 @@ def parse_status_list(raw: str) -> list[str]:
     return cm.dedupe_keep_order(out)
 
 
+def load_interpretability_meta(interp_dir: Path) -> dict[str, str]:
+    out: dict[str, str] = {}
+    runlog_path = interp_dir / "interpretability_runlog.txt"
+    if not runlog_path.exists():
+        return out
+    for line in runlog_path.read_text(encoding="utf-8").splitlines():
+        if "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        key = key.strip()
+        if key in {"primary_model_key", "shap_model_key", "shap_source", "scenario"}:
+            out[key] = value.strip()
+    return out
+
+
 def load_scenario_features(interp_dir: Path) -> list[str]:
     path = interp_dir / "scenario_feature_set.csv"
     if not path.exists():
@@ -730,6 +745,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--n-folds", type=int, default=3)
     parser.add_argument("--propensity-clip", type=float, default=0.05)
     parser.add_argument("--n-bootstrap", type=int, default=400)
+    parser.add_argument(
+        "--allow-non-extratrees-provenance",
+        action=argparse.BooleanOptionalAction,
+        default=False,
+        help="Allow running even if interpretability artifacts were not generated in ExtraTrees SHAP-only mode.",
+    )
     return parser.parse_args()
 
 
@@ -738,6 +759,16 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     out_dir.mkdir(parents=True, exist_ok=True)
 
     interp_dir = Path(args.interp_dir)
+    interp_meta = load_interpretability_meta(interp_dir)
+    if not bool(args.allow_non_extratrees_provenance):
+        primary = interp_meta.get("primary_model_key", "").strip().lower()
+        shap_source = interp_meta.get("shap_source", "").strip().lower()
+        if primary != "extratrees" or not shap_source.startswith("extratrees"):
+            raise ValueError(
+                "Causal pipeline expects interpretability artifacts from ExtraTrees SHAP-only mode. "
+                "Re-run interpretability with primary_model=extratrees and TreeSHAP, "
+                "or pass --allow-non-extratrees-provenance."
+            )
     seeds = parse_seed_list(args.seeds)
     primary_statuses = parse_status_list(args.primary_statuses)
     secondary_statuses = parse_status_list(args.secondary_statuses)
@@ -747,6 +778,9 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         primary_statuses=primary_statuses,
         secondary_statuses=secondary_statuses,
     )
+    pair_catalog_df["interp_primary_model_key"] = interp_meta.get("primary_model_key", "unknown")
+    pair_catalog_df["interp_shap_model_key"] = interp_meta.get("shap_model_key", "unknown")
+    pair_catalog_df["interp_shap_source"] = interp_meta.get("shap_source", "unknown")
     pair_catalog_df.to_csv(out_dir / "pair_catalog.csv", index=False)
 
     features = load_scenario_features(interp_dir)
@@ -881,6 +915,9 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     runlog = [
         f"run_tag={args.run_tag}",
         f"interp_dir={interp_dir}",
+        f"interp_primary_model_key={interp_meta.get('primary_model_key', 'unknown')}",
+        f"interp_shap_model_key={interp_meta.get('shap_model_key', 'unknown')}",
+        f"interp_shap_source={interp_meta.get('shap_source', 'unknown')}",
         f"seeds={seeds}",
         f"primary_statuses={primary_statuses}",
         f"secondary_statuses={secondary_statuses}",
