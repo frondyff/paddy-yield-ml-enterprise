@@ -5,7 +5,7 @@ Repository: `paddy-yield-ml-enterprise`
 Manifest scope: current CAROB production path
 
 ## 1) Objective
-Deliver a CAROB-first decision-support workflow with:
+Deliver a decision-support workflow with:
 - governed feature roles (modifiable/context/proxy),
 - trial-aware predictive evaluation,
 - interpretable rule extraction tied to model behavior,
