@@ -11,19 +11,26 @@ from __future__ import annotations
 import argparse
 import json
 import re
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-import matplotlib.pyplot as plt
+import matplotlib
 import numpy as np
 import pandas as pd
+import shap
 from catboost import CatBoostRegressor, Pool
+from sklearn.ensemble import ExtraTreesRegressor
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+from sklearn.pipeline import Pipeline
 from sklearn.tree import DecisionTreeRegressor
 
 from paddy_yield_ml.pipelines import carob_common as cc
 from paddy_yield_ml.pipelines import carob_model_compare as cm
+
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
 
 try:
     project_root = Path(__file__).resolve().parents[3]
@@ -35,6 +42,7 @@ DEFAULT_CANDIDATES_PATH = project_root / "outputs" / "carob_feature_prepare" / "
 DEFAULT_ROLE_MAP_PATH = project_root / "outputs" / "carob_feature_prepare" / "actionability_role_map.csv"
 DEFAULT_WINNERS_PATH = project_root / "outputs" / "carob_model_tune_top2" / "model_winners.csv"
 DEFAULT_SCENARIO = "modifiable_plus_context"
+DEFAULT_PRIMARY_MODEL = "extratrees"
 TREE_LEAF = -1
 COND_RE = re.compile(r"^(?P<feature>.+?)\s*(?P<op><=|>=|<|>)\s*(?P<threshold>-?\d+(?:\.\d+)?)$")
 
@@ -75,7 +83,24 @@ def load_role_map(path: Path, frame_cols: list[str]) -> pd.DataFrame:
     return role_df
 
 
-def load_best_catboost_params(path: Path) -> dict[str, Any]:
+def _metric_column(df: pd.DataFrame) -> str | None:
+    for col in ["test_r2", "r2_mean", "r2", "val_r2_mean", "val_r2_seed_primary"]:
+        if col in df.columns:
+            return col
+    return None
+
+
+def _parse_params_json(raw: str) -> dict[str, Any]:
+    try:
+        params = json.loads(raw)
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"Could not parse params_json: {raw}") from exc
+    if not isinstance(params, dict):
+        raise ValueError("Parsed params_json is not a JSON object.")
+    return params
+
+
+def load_winner_params(path: Path) -> dict[str, dict[str, Any]]:
     if not path.exists():
         raise FileNotFoundError(f"Missing tuned winner file: {path}")
     df = pd.read_csv(path)
@@ -83,20 +108,70 @@ def load_best_catboost_params(path: Path) -> dict[str, Any]:
     if not required.issubset(df.columns):
         raise ValueError(f"Winner file missing columns: {sorted(required)}")
 
-    mask = df["model_key"].astype(str).str.lower() == "catboost"
-    if not mask.any():
-        raise ValueError("No CatBoost row found in winners file.")
-    row = df.loc[mask].sort_values("r2_mean", ascending=False).iloc[0]
-    raw = str(row["params_json"])
-    try:
-        params = json.loads(raw)
-    except json.JSONDecodeError as exc:
-        raise ValueError(f"Could not parse params_json: {raw}") from exc
-    if not isinstance(params, dict):
-        raise ValueError("Parsed CatBoost params are not a JSON object.")
-    if "n_estimators" in params and "iterations" not in params:
-        params["iterations"] = int(params.pop("n_estimators"))
-    return params
+    out: dict[str, dict[str, Any]] = {}
+    work = df.copy()
+    work["model_key"] = work["model_key"].astype(str).str.lower()
+    metric_col = _metric_column(work)
+    if metric_col is not None:
+        work = work.sort_values(metric_col, ascending=False, na_position="last")
+    for _, row in work.iterrows():
+        model_key = str(row["model_key"]).lower().strip()
+        if not model_key or model_key in out:
+            continue
+        params = _parse_params_json(str(row["params_json"]))
+        out[model_key] = {
+            "params": params,
+            "metric_col": metric_col,
+            "metric_value": float(row[metric_col]) if metric_col and pd.notna(row[metric_col]) else np.nan,
+        }
+    if not out:
+        raise ValueError("No model rows could be parsed from winners file.")
+    return out
+
+
+def _normalize_catboost_params(params: dict[str, Any]) -> dict[str, Any]:
+    tuned = dict(params)
+    if "n_estimators" in tuned and "iterations" not in tuned:
+        tuned["iterations"] = int(tuned.pop("n_estimators"))
+    return tuned
+
+
+def _default_params_for(model_key: str) -> dict[str, Any]:
+    if model_key == "extratrees":
+        return {
+            "n_estimators": 500,
+            "max_depth": None,
+            "min_samples_leaf": 1,
+            "min_samples_split": 2,
+            "max_features": "sqrt",
+        }
+    if model_key == "catboost":
+        return {
+            "iterations": 500,
+            "learning_rate": 0.05,
+            "depth": 6,
+            "l2_leaf_reg": 3.0,
+            "random_strength": 1.0,
+            "bagging_temperature": 0.0,
+        }
+    raise ValueError(f"Unsupported model key for defaults: {model_key}")
+
+
+def resolve_model_params(
+    winners: dict[str, dict[str, Any]],
+    *,
+    requested_model: str,
+    fallback_model: str,
+) -> tuple[str, dict[str, Any], str]:
+    req = requested_model.strip().lower()
+    if req == "auto":
+        if fallback_model in winners:
+            req = fallback_model
+        else:
+            req = next(iter(winners))
+    if req in winners:
+        return req, dict(winners[req]["params"]), "winners_file"
+    return req, _default_params_for(req), "default_fallback"
 
 
 def load_frame_and_features(candidates_path: Path, scenario: str) -> tuple[pd.DataFrame, list[str]]:
@@ -198,32 +273,59 @@ def build_catboost(params: dict[str, Any], seed: int) -> CatBoostRegressor:
         "verbose": False,
         "allow_writing_files": False,
     }
-    tuned = dict(params)
-    tuned.pop("n_estimators", None)
+    tuned = _normalize_catboost_params(params)
     base.update(tuned)
     return CatBoostRegressor(**base)
 
 
-def fit_and_explain(
+def build_extratrees(params: dict[str, Any], seed: int) -> ExtraTreesRegressor:
+    return ExtraTreesRegressor(
+        n_estimators=int(params.get("n_estimators", 500)),
+        max_depth=(None if params.get("max_depth", None) is None else int(params["max_depth"])),
+        min_samples_leaf=int(params.get("min_samples_leaf", 1)),
+        min_samples_split=int(params.get("min_samples_split", 2)),
+        max_features=params.get("max_features", "sqrt"),
+        random_state=seed,
+        n_jobs=-1,
+    )
+
+
+def fit_primary_model(
     bundle: HoldoutBundle,
+    model_key: str,
     params: dict[str, Any],
     *,
     seed: int,
-) -> tuple[CatBoostRegressor, pd.Series, pd.Series, pd.DataFrame, float, dict[str, float]]:
-    model = build_catboost(params=params, seed=seed)
-    cat_idx = [bundle.x_train.columns.get_loc(c) for c in bundle.cat_cols]
-    train_pool = Pool(bundle.x_train, label=bundle.y_train, cat_features=cat_idx)
-    test_pool = Pool(bundle.x_test, label=bundle.y_test, cat_features=cat_idx)
+) -> tuple[object, pd.Series, pd.Series, dict[str, float], Callable[[pd.DataFrame], np.ndarray]]:
+    model_key = str(model_key).lower()
+    if model_key == "catboost":
+        model = build_catboost(params=params, seed=seed)
+        cat_idx = [bundle.x_train.columns.get_loc(c) for c in bundle.cat_cols]
+        train_pool = Pool(bundle.x_train, label=bundle.y_train, cat_features=cat_idx)
+        test_pool = Pool(bundle.x_test, label=bundle.y_test, cat_features=cat_idx)
+        model.fit(train_pool)
+        pred_train = pd.Series(model.predict(train_pool), index=np.arange(len(bundle.x_train)))
+        pred_test = pd.Series(model.predict(test_pool), index=np.arange(len(bundle.x_test)))
 
-    model.fit(train_pool)
-    pred_train = pd.Series(model.predict(train_pool), index=np.arange(len(bundle.x_train)))
-    pred_test = pd.Series(model.predict(test_pool), index=np.arange(len(bundle.x_test)))
+        def predict_fn(x: pd.DataFrame) -> np.ndarray:
+            return np.asarray(model.predict(Pool(x, cat_features=cat_idx)), dtype=float)
 
-    shap_raw = model.get_feature_importance(data=test_pool, type="ShapValues")
-    if shap_raw.ndim != 2 or shap_raw.shape[1] != bundle.x_test.shape[1] + 1:
-        raise ValueError("Unexpected SHAP shape from CatBoost.")
-    shap_df = pd.DataFrame(shap_raw[:, :-1], columns=bundle.x_test.columns, index=bundle.x_test.index)
-    expected_value = float(np.mean(shap_raw[:, -1]))
+    elif model_key == "extratrees":
+        model = Pipeline(
+            [
+                ("preprocess", cm.make_preprocessor(bundle.x_train)),
+                ("model", build_extratrees(params=params, seed=seed)),
+            ]
+        )
+        model.fit(bundle.x_train, bundle.y_train)
+        pred_train = pd.Series(model.predict(bundle.x_train), index=np.arange(len(bundle.x_train)))
+        pred_test = pd.Series(model.predict(bundle.x_test), index=np.arange(len(bundle.x_test)))
+
+        def predict_fn(x: pd.DataFrame) -> np.ndarray:
+            return np.asarray(model.predict(x), dtype=float)
+
+    else:
+        raise ValueError(f"Unsupported primary model_key: {model_key}")
 
     metrics = {
         "r2_test": float(r2_score(bundle.y_test, pred_test)),
@@ -233,7 +335,104 @@ def fit_and_explain(
         "rmse_train": float(np.sqrt(mean_squared_error(bundle.y_train, pred_train))),
         "mae_train": float(mean_absolute_error(bundle.y_train, pred_train)),
     }
-    return model, pred_train, pred_test, shap_df, expected_value, metrics
+    return model, pred_train, pred_test, metrics, predict_fn
+
+
+def _base_feature_from_encoded_name(encoded_name: str, feature_names: list[str]) -> str:
+    ordered = sorted(feature_names, key=len, reverse=True)
+    for feat in ordered:
+        feat_str = str(feat)
+        prefix = f"{feat_str}_"
+        if encoded_name == feat_str or encoded_name.startswith(prefix):
+            return feat_str
+    return encoded_name
+
+
+def _encoded_feature_to_base_map(
+    *,
+    preprocess: Any,
+    feature_names: list[str],
+    transformed_feature_names: list[str],
+) -> dict[str, str]:
+    out: dict[str, str] = {}
+    for name in transformed_feature_names:
+        if name.startswith("num__"):
+            out[name] = name.replace("num__", "", 1)
+            continue
+        if name.startswith("cat__"):
+            raw = name.replace("cat__", "", 1)
+            out[name] = _base_feature_from_encoded_name(raw, feature_names)
+            continue
+        out[name] = _base_feature_from_encoded_name(name, feature_names)
+
+    # Keep mapped names consistent with known raw features if possible.
+    valid = set(feature_names)
+    for key, value in list(out.items()):
+        if value not in valid:
+            if value.startswith("num__"):
+                value = value.replace("num__", "", 1)
+            elif value.startswith("cat__"):
+                value = value.replace("cat__", "", 1)
+            out[key] = value if value in valid else value
+    return out
+
+
+def fit_primary_shap(
+    bundle: HoldoutBundle,
+    *,
+    primary_model_key: str,
+    primary_model: object,
+    primary_pred_test: pd.Series,
+) -> tuple[pd.DataFrame, float, pd.Series, str]:
+    if str(primary_model_key).lower() != "extratrees":
+        raise ValueError("ExtraTrees SHAP-only mode requires primary_model='extratrees'.")
+    if not isinstance(primary_model, Pipeline):
+        raise ValueError("Expected sklearn Pipeline for ExtraTrees SHAP computation.")
+    if "preprocess" not in primary_model.named_steps or "model" not in primary_model.named_steps:
+        raise ValueError("Expected pipeline with 'preprocess' and 'model' steps.")
+    preprocess = primary_model.named_steps["preprocess"]
+    forest = primary_model.named_steps["model"]
+    if not isinstance(forest, ExtraTreesRegressor):
+        raise ValueError("Expected ExtraTreesRegressor in pipeline model step.")
+
+    x_test_enc = preprocess.transform(bundle.x_test)
+    transformed_names = preprocess.get_feature_names_out().tolist()
+
+    explainer = shap.TreeExplainer(forest)
+    shap_raw = explainer.shap_values(x_test_enc)
+    if isinstance(shap_raw, list):
+        shap_arr = np.asarray(shap_raw[0], dtype=float)
+    else:
+        shap_arr = np.asarray(shap_raw, dtype=float)
+    if shap_arr.ndim != 2:
+        raise ValueError("Unexpected SHAP output rank for ExtraTrees.")
+
+    shap_encoded_df = pd.DataFrame(shap_arr, columns=transformed_names, index=bundle.x_test.index)
+    encoded_to_base = _encoded_feature_to_base_map(
+        preprocess=preprocess,
+        feature_names=bundle.x_test.columns.tolist(),
+        transformed_feature_names=transformed_names,
+    )
+    base_index = pd.Index([encoded_to_base.get(col, col) for col in shap_encoded_df.columns], name="base_feature")
+    shap_df = shap_encoded_df.T.groupby(base_index, sort=False).sum().T
+
+    for col in bundle.x_test.columns:
+        if col not in shap_df.columns:
+            shap_df[col] = 0.0
+    shap_df = shap_df[bundle.x_test.columns.tolist()].copy()
+
+    expected_raw = explainer.expected_value
+    if callable(expected_raw):
+        expected_value = float(np.mean(primary_pred_test))
+    else:
+        expected_arr = np.asarray(expected_raw, dtype=float).reshape(-1)
+        if expected_arr.size == 0 or not np.isfinite(expected_arr[0]):
+            expected_value = float(np.mean(primary_pred_test))
+        else:
+            expected_value = float(expected_arr[0])
+
+    pred_test = primary_pred_test.copy()
+    return shap_df, expected_value, pred_test, "extratrees_treeshap"
 
 
 def make_global_shap_table(shap_df: pd.DataFrame, role_map_df: pd.DataFrame) -> pd.DataFrame:
@@ -251,18 +450,15 @@ def make_global_shap_table(shap_df: pd.DataFrame, role_map_df: pd.DataFrame) -> 
 
 
 def compute_permutation_importance(
-    model: CatBoostRegressor,
     x_test: pd.DataFrame,
     y_test: pd.Series,
-    cat_cols: list[str],
+    predict_fn: Callable[[pd.DataFrame], np.ndarray],
     *,
     seed: int,
     n_repeats: int,
 ) -> pd.DataFrame:
     rng = np.random.default_rng(seed)
-    cat_idx = [x_test.columns.get_loc(c) for c in cat_cols]
-
-    base_pred = pd.Series(model.predict(Pool(x_test, cat_features=cat_idx)))
+    base_pred = pd.Series(predict_fn(x_test), index=x_test.index)
     base_rmse = float(np.sqrt(mean_squared_error(y_test, base_pred)))
     base_r2 = float(r2_score(y_test, base_pred))
 
@@ -274,7 +470,7 @@ def compute_permutation_importance(
         for _ in range(int(n_repeats)):
             x_perm = x_test.copy()
             x_perm[feature] = rng.permutation(source)
-            pred_perm = pd.Series(model.predict(Pool(x_perm, cat_features=cat_idx)))
+            pred_perm = pd.Series(predict_fn(x_perm), index=x_perm.index)
             rmse_perm = float(np.sqrt(mean_squared_error(y_test, pred_perm)))
             r2_perm = float(r2_score(y_test, pred_perm))
             deltas_rmse.append(rmse_perm - base_rmse)
@@ -452,9 +648,8 @@ def numeric_grid(values: pd.Series, n_points: int, low_q: float = 0.05, high_q: 
 
 
 def compute_pdp_curve(
-    model: CatBoostRegressor,
+    predict_fn: Callable[[pd.DataFrame], np.ndarray],
     x_ref: pd.DataFrame,
-    cat_cols: list[str],
     feature: str,
     *,
     n_points: int,
@@ -467,12 +662,11 @@ def compute_pdp_curve(
                 "pdp_centered": pd.Series(dtype=float),
             }
         )
-    cat_idx = [x_ref.columns.get_loc(c) for c in cat_cols]
     means: list[float] = []
     for val in grid:
         x_mod = x_ref.copy()
         x_mod[feature] = float(val)
-        pred = model.predict(Pool(x_mod, cat_features=cat_idx))
+        pred = predict_fn(x_mod)
         means.append(float(np.mean(pred)))
     arr = np.array(means, dtype=float)
     centered = arr - float(np.mean(arr))
@@ -480,9 +674,8 @@ def compute_pdp_curve(
 
 
 def compute_ale_curve(
-    model: CatBoostRegressor,
+    predict_fn: Callable[[pd.DataFrame], np.ndarray],
     x_ref: pd.DataFrame,
-    cat_cols: list[str],
     feature: str,
     *,
     n_bins: int,
@@ -507,7 +700,6 @@ def compute_ale_curve(
             }
         )
 
-    cat_idx = [x_ref.columns.get_loc(c) for c in cat_cols]
     effects: list[float] = []
     centers: list[float] = []
     counts: list[int] = []
@@ -532,8 +724,8 @@ def compute_ale_curve(
         x_high = x_bin.copy()
         x_low[feature] = low
         x_high[feature] = high
-        pred_low = model.predict(Pool(x_low, cat_features=cat_idx))
-        pred_high = model.predict(Pool(x_high, cat_features=cat_idx))
+        pred_low = predict_fn(x_low)
+        pred_high = predict_fn(x_high)
         effects.append(float(np.mean(pred_high - pred_low)))
         centers.append((low + high) / 2.0)
         counts.append(int(len(idx)))
@@ -764,7 +956,8 @@ def seed_snapshot(
     frame: pd.DataFrame,
     features: list[str],
     role_map_df: pd.DataFrame,
-    params: dict[str, Any],
+    primary_model_key: str,
+    primary_params: dict[str, Any],
     *,
     seed: int,
     test_size: float,
@@ -778,28 +971,48 @@ def seed_snapshot(
         test_size=test_size,
         trial_median_impute=trial_median_impute,
     )
-    model, pred_train, pred_test, shap_df, expected_value, metrics = fit_and_explain(bundle, params=params, seed=seed)
+    model, pred_train, pred_test, metrics, predict_fn = fit_primary_model(
+        bundle=bundle,
+        model_key=primary_model_key,
+        params=primary_params,
+        seed=seed,
+    )
+    shap_df, expected_value, shap_pred_test, shap_source = fit_primary_shap(
+        bundle=bundle,
+        primary_model_key=primary_model_key,
+        primary_model=model,
+        primary_pred_test=pred_test,
+    )
     global_shap = make_global_shap_table(shap_df, role_map_df)
     perm = compute_permutation_importance(
-        model=model,
         x_test=bundle.x_test,
         y_test=bundle.y_test,
-        cat_cols=bundle.cat_cols,
+        predict_fn=predict_fn,
         seed=seed + 777,
         n_repeats=perm_repeats,
     )
     cross = build_crosscheck_table(global_shap, perm, role_map_df)
+    shap_metrics = {
+        "r2_test_shap_model": float(r2_score(bundle.y_test, shap_pred_test)),
+        "rmse_test_shap_model": float(np.sqrt(mean_squared_error(bundle.y_test, shap_pred_test))),
+        "mae_test_shap_model": float(mean_absolute_error(bundle.y_test, shap_pred_test)),
+    }
     return {
         "bundle": bundle,
         "model": model,
+        "predict_fn": predict_fn,
         "pred_train": pred_train,
         "pred_test": pred_test,
+        "pred_test_shap_model": shap_pred_test,
         "shap_df": shap_df,
         "global_shap": global_shap,
         "perm": perm,
         "cross": cross,
         "metrics": metrics,
+        "shap_metrics": shap_metrics,
         "expected_value": expected_value,
+        "shap_source": shap_source,
+        "primary_model_key": primary_model_key,
     }
 
 
@@ -838,7 +1051,8 @@ def evaluate_rules_over_seeds(
     rules_df: pd.DataFrame,
     frame: pd.DataFrame,
     features: list[str],
-    params: dict[str, Any],
+    primary_model_key: str,
+    primary_params: dict[str, Any],
     *,
     seeds: list[int],
     test_size: float,
@@ -850,7 +1064,8 @@ def evaluate_rules_over_seeds(
             frame=frame,
             features=features,
             role_map_df=pd.DataFrame({"column_name": features, "final_role": "unknown"}),
-            params=params,
+            primary_model_key=primary_model_key,
+            primary_params=primary_params,
             seed=int(seed),
             test_size=test_size,
             trial_median_impute=trial_median_impute,
@@ -897,7 +1112,8 @@ def evaluate_rules_by_country_over_seeds(
     rules_df: pd.DataFrame,
     frame: pd.DataFrame,
     features: list[str],
-    params: dict[str, Any],
+    primary_model_key: str,
+    primary_params: dict[str, Any],
     *,
     seeds: list[int],
     test_size: float,
@@ -909,7 +1125,8 @@ def evaluate_rules_by_country_over_seeds(
             frame=frame,
             features=features,
             role_map_df=pd.DataFrame({"column_name": features, "final_role": "unknown"}),
-            params=params,
+            primary_model_key=primary_model_key,
+            primary_params=primary_params,
             seed=int(seed),
             test_size=test_size,
             trial_median_impute=trial_median_impute,
@@ -1359,6 +1576,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--candidates-path", type=str, default=str(DEFAULT_CANDIDATES_PATH))
     parser.add_argument("--role-map-path", type=str, default=str(DEFAULT_ROLE_MAP_PATH))
     parser.add_argument("--winners-path", type=str, default=str(DEFAULT_WINNERS_PATH))
+    parser.add_argument("--primary-model", type=str, default=DEFAULT_PRIMARY_MODEL)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--stability-seeds", type=str, default="42,52,62")
     parser.add_argument("--test-size", type=float, default=0.2)
@@ -1382,7 +1600,17 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
 
     frame, features = load_frame_and_features(candidates_path, args.scenario)
     role_map_df = load_role_map(role_map_path, frame_cols=frame.columns.tolist())
-    params = load_best_catboost_params(winners_path)
+    winners = load_winner_params(winners_path)
+    primary_model_key, primary_params, primary_param_source = resolve_model_params(
+        winners,
+        requested_model=str(args.primary_model),
+        fallback_model="extratrees",
+    )
+    if primary_model_key != "extratrees":
+        raise ValueError(
+            "This pipeline is configured for ExtraTrees SHAP-only mode. "
+            "Use --primary-model extratrees."
+        )
     stability_seeds = parse_seed_list(args.stability_seeds)
     if int(args.seed) not in stability_seeds:
         stability_seeds = list(dict.fromkeys([int(args.seed)] + stability_seeds))
@@ -1397,7 +1625,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         frame=frame,
         features=features,
         role_map_df=role_map_df,
-        params=params,
+        primary_model_key=primary_model_key,
+        primary_params=primary_params,
         seed=int(args.seed),
         test_size=float(args.test_size),
         trial_median_impute=bool(args.trial_median_impute),
@@ -1410,14 +1639,17 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     cross_df = it1["cross"]
     pred_train = it1["pred_train"]
     pred_test = it1["pred_test"]
+    pred_test_shap = it1["pred_test_shap_model"]
     shap_df = it1["shap_df"]
-    model = it1["model"]
+    predict_fn = it1["predict_fn"]
     metrics = it1["metrics"]
+    shap_metrics = it1["shap_metrics"]
+    shap_source = it1["shap_source"]
 
     global_shap_df.to_csv(out_dir / "iteration1_global_shap_importance.csv", index=False)
     perm_df.to_csv(out_dir / "iteration1_permutation_importance.csv", index=False)
     cross_df.to_csv(out_dir / "iteration1_feature_crosscheck.csv", index=False)
-    pd.DataFrame([metrics]).to_csv(out_dir / "iteration1_model_metrics.csv", index=False)
+    pd.DataFrame([metrics | shap_metrics]).to_csv(out_dir / "iteration1_model_metrics.csv", index=False)
 
     plot_top_bar(
         global_shap_df,
@@ -1447,12 +1679,12 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         x_label="RMSE increase when feature is permuted",
     )
 
-    case_map = select_local_cases(bundle.y_test, pred_test)
+    case_map = select_local_cases(bundle.y_test, pred_test_shap)
     local_overview_df, _local_detail_df = save_local_outputs(
         x_test=bundle.x_test,
         y_test=bundle.y_test,
         groups_test=bundle.groups_test,
-        pred_test=pred_test,
+        pred_test=pred_test_shap,
         shap_df=shap_df,
         case_map=case_map,
         top_n_features=int(args.local_top_n),
@@ -1502,8 +1734,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
 
     curve_rows: list[dict[str, Any]] = []
     for feature in actionable_numeric_for_curves:
-        ale_df = compute_ale_curve(model, bundle.x_test, bundle.cat_cols, feature, n_bins=10)
-        pdp_df = compute_pdp_curve(model, bundle.x_test, bundle.cat_cols, feature, n_points=12)
+        ale_df = compute_ale_curve(predict_fn, bundle.x_test, feature, n_bins=10)
+        pdp_df = compute_pdp_curve(predict_fn, bundle.x_test, feature, n_points=12)
         ale_df.to_csv(out_dir / f"iteration1_ale_{feature}.csv", index=False)
         pdp_df.to_csv(out_dir / f"iteration1_pdp_{feature}.csv", index=False)
         plot_ale_pdp(
@@ -1528,7 +1760,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             frame=frame,
             features=features,
             role_map_df=role_map_df,
-            params=params,
+            primary_model_key=primary_model_key,
+            primary_params=primary_params,
             seed=int(seed),
             test_size=float(args.test_size),
             trial_median_impute=bool(args.trial_median_impute),
@@ -1543,7 +1776,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         rules_df=rules_raw_df,
         frame=frame,
         features=features,
-        params=params,
+        primary_model_key=primary_model_key,
+        primary_params=primary_params,
         seeds=stability_seeds,
         test_size=float(args.test_size),
         trial_median_impute=bool(args.trial_median_impute),
@@ -1556,7 +1790,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         rules_df=rules_raw_df,
         frame=frame,
         features=features,
-        params=params,
+        primary_model_key=primary_model_key,
+        primary_params=primary_params,
         seeds=stability_seeds,
         test_size=float(args.test_size),
         trial_median_impute=bool(args.trial_median_impute),
@@ -1656,7 +1891,9 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 "mae_test": metrics["mae_test"],
                 "rules_count": int(len(rules_raw_df)),
                 "top10_shap_perm_overlap_ratio": overlap_top10,
-                "notes": "Baseline explainability package generated.",
+                "notes": (
+                    f"Primary model={primary_model_key}; SHAP source={shap_source}."
+                ),
             },
             {
                 "iteration": "iteration2",
@@ -1683,6 +1920,11 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     runlog_lines = [
         f"run_tag={args.run_tag}",
         f"scenario={args.scenario}",
+        f"primary_model_key={primary_model_key}",
+        f"primary_param_source={primary_param_source}",
+        "shap_model_key=extratrees",
+        "shap_param_source=primary_model",
+        f"shap_source={shap_source}",
         f"seed={int(args.seed)}",
         f"stability_seeds={stability_seeds}",
         f"rows_total={len(frame)}",
@@ -1693,6 +1935,9 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         f"iteration1_r2_test={metrics['r2_test']:.6f}",
         f"iteration1_rmse_test={metrics['rmse_test']:.6f}",
         f"iteration1_mae_test={metrics['mae_test']:.6f}",
+        f"iteration1_shap_model_r2_test={shap_metrics['r2_test_shap_model']:.6f}",
+        f"iteration1_shap_model_rmse_test={shap_metrics['rmse_test_shap_model']:.6f}",
+        f"iteration1_shap_model_mae_test={shap_metrics['mae_test_shap_model']:.6f}",
         f"top10_shap_perm_overlap_ratio={overlap_top10:.4f}",
         f"iteration3_rules_count={len(selected_iter3_df)}",
         f"iteration3_avg_rule_sign_match={avg_rule_sign_match:.4f}",
@@ -1705,7 +1950,10 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     (out_dir / "interpretability_runlog.txt").write_text("\n".join(runlog_lines), encoding="utf-8")
 
     print(f"Saved CAROB interpretability outputs to: {out_dir}")
-    print(f"Iteration 1 test metrics: R2={metrics['r2_test']:.4f} | RMSE={metrics['rmse_test']:.2f}")
+    print(
+        f"Iteration 1 primary={primary_model_key} test metrics: "
+        f"R2={metrics['r2_test']:.4f} | RMSE={metrics['rmse_test']:.2f}"
+    )
     print(f"Final rule count: {len(selected_iter3_df)} | defensible_case={defensible}")
 
     return {

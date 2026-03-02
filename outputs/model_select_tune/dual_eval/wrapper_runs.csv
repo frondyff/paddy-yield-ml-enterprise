@@ -1,4 +1,0 @@
-model,seed,base_feature_count,added_count,final_feature_count,final_cv_r2_mean,final_cv_rmse_mean,final_cv_mae_mean,selected_features,added_features
-random_forest,42,4,0,4,0.5015468123690724,204.16854642527846,161.18103604295763,Variety|Nursery|Hectares|Soil Types,
-random_forest,7,4,0,4,0.5012654174388491,204.22655861805706,161.3409133841936,Variety|Nursery|Hectares|Soil Types,
-random_forest,123,4,0,4,0.5014021247308927,204.19847209273033,161.31495998405975,Variety|Nursery|Hectares|Soil Types,

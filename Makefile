@@ -1,6 +1,6 @@
 UV ?= uv
 
-.PHONY: sync install lock help run-carob-baseline run-carob-feature-prepare run-carob-model-compare run-carob-interpretability run-carob-interpretability-report run-carob-rule-causal-aipw run-baseline run-feature-prepare run-model-compare run-causal-pilot run-model-select-tune run-ablation-eval run-interpretability-report test lint format typecheck verify clean
+.PHONY: sync install lock help run-carob-baseline run-carob-feature-prepare run-carob-model-compare run-carob-model-tune run-carob-interpretability run-carob-rule-causal-aipw run-baseline run-feature-prepare run-model-compare run-causal-pilot run-model-select-tune run-ablation-eval run-interpretability-report test lint format typecheck verify clean
 
 sync:
 	$(UV) sync --all-groups
@@ -15,6 +15,7 @@ help:
 	@echo "  make run-carob-baseline"
 	@echo "  make run-carob-feature-prepare"
 	@echo "  make run-carob-model-compare"
+	@echo "  make run-carob-model-tune"
 	@echo "  make run-carob-interpretability"
 	@echo "  make run-carob-rule-causal-aipw"
 	@echo ""
@@ -32,14 +33,14 @@ run-carob-feature-prepare:
 run-carob-model-compare:
 	$(UV) run python src/paddy_yield_ml/pipelines/carob_model_compare.py
 
-run-carob-interpretability:
-	$(UV) run python src/paddy_yield_ml/pipelines/carob_interpretability.py --run-tag iter3_defensible_v5
+run-carob-model-tune:
+	$(UV) run python src/paddy_yield_ml/pipelines/carob_model_tune_top2.py
 
-run-carob-interpretability-report:
-	$(UV) run python src/paddy_yield_ml/pipelines/carob_interpretability_report.py --run-tag latest
+run-carob-interpretability:
+	$(UV) run python src/paddy_yield_ml/pipelines/carob_interpretability.py --run-tag iter5_extratrees_shap_only_v1
 
 run-carob-rule-causal-aipw:
-	$(UV) run python src/paddy_yield_ml/pipelines/carob_rule_causal_aipw.py --run-tag rule_aipw_v2
+	$(UV) run python src/paddy_yield_ml/pipelines/carob_rule_causal_aipw.py --run-tag rule_aipw_v4_extratrees_shap_only --interp-dir outputs/carob_interpretability/iter5_extratrees_shap_only_v1
 
 # Deprecated aliases: prefer run-carob-* targets for active CAROB workflows.
 run-baseline:

@@ -10,7 +10,7 @@ if str(SRC_DIR) not in sys.path:
 
 
 def run() -> None:
-    from paddy_yield_ml.pipelines.carob_feature_prepare import main
+    from paddy_yield_ml.pipelines.feature_prepare import main
 
     main()
 

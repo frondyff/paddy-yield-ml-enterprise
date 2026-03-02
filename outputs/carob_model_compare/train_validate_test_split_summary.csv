@@ -1,0 +1,4 @@
+split,n_rows,n_trials
+test,160,13
+train,507,13
+validation,163,13

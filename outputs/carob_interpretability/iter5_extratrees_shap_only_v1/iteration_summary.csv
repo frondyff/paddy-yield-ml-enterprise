@@ -1,0 +1,4 @@
+iteration,r2_test,rmse_test,mae_test,rules_count,top10_shap_perm_overlap_ratio,notes
+iteration1,0.4722238113911562,1008.7524100802376,754.1731815150831,7,0.9,Primary model=extratrees; SHAP source=extratrees_treeshap.
+iteration2,,,,5,0.9,"{""abs_lift_min"": 100.0, ""mode"": ""threshold_pass"", ""sign_min"": 0.5, ""support_min"": 0.05}"
+iteration3,,,,5,0.9,"{""abs_lift_min"": 50.0, ""mode"": ""fallback_top_score"", ""sign_min"": 0.67, ""support_min"": 0.05}"

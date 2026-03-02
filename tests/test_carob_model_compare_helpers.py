@@ -21,6 +21,35 @@ def test_build_trial_aware_split_indices_has_train_and_test_for_each_group_with_
         assert test_has
 
 
+def test_build_trial_aware_train_val_test_indices_produces_disjoint_non_empty_splits() -> None:
+    groups = pd.Series(["A"] * 5 + ["B"] * 5 + ["C"] * 5 + ["D"] * 5)
+    tr, va, te = cm.build_trial_aware_train_val_test_indices(
+        groups=groups,
+        test_size=0.2,
+        val_size=0.2,
+        random_state=42,
+    )
+
+    tr_set = set(tr.tolist())
+    va_set = set(va.tolist())
+    te_set = set(te.tolist())
+    assert len(tr_set) > 0
+    assert len(va_set) > 0
+    assert len(te_set) > 0
+    assert tr_set.isdisjoint(va_set)
+    assert tr_set.isdisjoint(te_set)
+    assert va_set.isdisjoint(te_set)
+
+
+def test_build_trial_aware_train_val_test_indices_rejects_invalid_sizes() -> None:
+    groups = pd.Series(["A"] * 4 + ["B"] * 4)
+    try:
+        cm.build_trial_aware_train_val_test_indices(groups=groups, test_size=0.6, val_size=0.5, random_state=42)
+        raise AssertionError("Expected ValueError when test_size + val_size >= 1.")
+    except ValueError:
+        pass
+
+
 def test_impute_numeric_by_group_uses_train_group_median_and_global_fallback() -> None:
     x_train = pd.DataFrame(
         {

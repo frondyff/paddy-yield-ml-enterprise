@@ -15,7 +15,6 @@ from paddy_yield_ml.pipelines.baseline_train import (
     save_artifacts,
     train_and_evaluate,
 )
-from paddy_yield_ml.pipelines.interpretability import run_interpretability
 from paddy_yield_ml.pipelines.paths import project_root, resolve_data_path
 
 
@@ -90,7 +89,7 @@ def main() -> None:
     _run_legacy_main("paddy_yield_ml.pipelines.model_compare", [])
     _run_legacy_main("paddy_yield_ml.pipelines.model_select_tune", [])
     _run_legacy_main("paddy_yield_ml.pipelines.ablation_eval", [])
-    run_interpretability(data_path, targets["interpretability"], args.seed, args.test_size)
+    _run_legacy_main("paddy_yield_ml.pipelines.interpretability_report", [])
 
     with (outputs_root / "run_all_manifest.json").open("w", encoding="utf-8") as f:
         json.dump(

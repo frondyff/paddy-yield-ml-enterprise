@@ -27,37 +27,41 @@ Thumbs.db
 # Generated outputs
 outputs/*
 !outputs/.gitkeep
+!outputs/run_all_manifest.json
 
-# CAROB placeholders (active track)
+# CAROB deliverable contract artifacts
 !outputs/carob_baseline/
 !outputs/carob_baseline/**
 !outputs/carob_feature_prepare/
 !outputs/carob_feature_prepare/**
 !outputs/carob_model_compare/
 !outputs/carob_model_compare/**
-!outputs/carob_causal_pilot/
-!outputs/carob_causal_pilot/**
-!outputs/carob_interpretability/
-!outputs/carob_interpretability/**
-!outputs/carob_rule_causal_aipw/
-!outputs/carob_rule_causal_aipw/**
 
-# Legacy outputs (kept for compatibility)
+!outputs/carob_model_tune_top2/
+outputs/carob_model_tune_top2/*
+!outputs/carob_model_tune_top2/model_winners.csv
+!outputs/carob_model_tune_top2/final_model_decision.md
+!outputs/carob_model_tune_top2/learning_curve_best_model_summary.csv
+!outputs/carob_model_tune_top2/learning_curve_best_model.png
+
+!outputs/carob_interpretability/
+!outputs/carob_interpretability/iter5_extratrees_shap_only_v1/
+!outputs/carob_interpretability/iter5_extratrees_shap_only_v1/**
+
+!outputs/carob_rule_causal_aipw/
+!outputs/carob_rule_causal_aipw/rule_aipw_v4_extratrees_shap_only/
+!outputs/carob_rule_causal_aipw/rule_aipw_v4_extratrees_shap_only/**
+
+# Keep placeholder directories for legacy compatibility only
 !outputs/baseline/
+outputs/baseline/*
 !outputs/baseline/.gitkeep
-!outputs/baseline/**
 !outputs/feature_prepare/
+outputs/feature_prepare/*
 !outputs/feature_prepare/.gitkeep
-!outputs/feature_prepare/**
-!outputs/model_compare/
-!outputs/model_compare/**
-!outputs/model_select_tune/
-!outputs/model_select_tune/**
-!outputs/ablation_eval/
-!outputs/ablation_eval/**
-!outputs/interpretability/
-!outputs/interpretability/**
-!outputs/run_all_manifest.json
+!outputs/carob_causal_pilot/
+outputs/carob_causal_pilot/*
+!outputs/carob_causal_pilot/.gitkeep
 
 # Training/runtime artifacts
 catboost_info/

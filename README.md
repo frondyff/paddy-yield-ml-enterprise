@@ -17,6 +17,7 @@ Build a reproducible decision-support workflow that can:
 - `src/paddy_yield_ml/pipelines/carob_baseline.py`
 - `src/paddy_yield_ml/pipelines/carob_feature_prepare.py`
 - `src/paddy_yield_ml/pipelines/carob_model_compare.py`
+- `src/paddy_yield_ml/pipelines/carob_model_tune_top2.py`
 - `src/paddy_yield_ml/pipelines/carob_interpretability.py`
 - `src/paddy_yield_ml/pipelines/carob_rule_causal_aipw.py`
 
@@ -30,12 +31,13 @@ Build a reproducible decision-support workflow that can:
 - `outputs/carob_feature_prepare/`
 - `outputs/carob_model_compare/`
 - `outputs/carob_interpretability/`
-- `outputs/carob_rule_causal_aipw/rule_aipw_v2/`
+- `outputs/carob_rule_causal_aipw/rule_aipw_v4_extratrees_shap_only/`
 
 ## Validation philosophy (CAROB)
-- Predictive robustness: Leave-One-Trial-Out grouped evaluation.
+- Predictive robustness: trial-aware train/validation/test split.
 - Feature governance: role-based screening (modifiable/context/proxy) + redundancy review.
-- Causal stretch goal: rule-as-treatment AIPW diagnostics with trial-aware uncertainty checks.
+- Explainability consistency: ExtraTrees TreeSHAP only (same primary model for prediction and explanation).
+- Causal stretch goal: rule-as-treatment AIPW diagnostics with trial-aware uncertainty checks and interpretability provenance gate.
 
 ## Setup
 ```bash
@@ -47,8 +49,9 @@ uv sync --all-groups
 uv run python src/paddy_yield_ml/pipelines/carob_baseline.py
 uv run python src/paddy_yield_ml/pipelines/carob_feature_prepare.py
 uv run python src/paddy_yield_ml/pipelines/carob_model_compare.py
-uv run python src/paddy_yield_ml/pipelines/carob_interpretability.py --run-tag iter3_defensible_v5
-uv run python src/paddy_yield_ml/pipelines/carob_rule_causal_aipw.py --run-tag rule_aipw_v2
+uv run python src/paddy_yield_ml/pipelines/carob_model_tune_top2.py
+uv run python src/paddy_yield_ml/pipelines/carob_interpretability.py --run-tag iter5_extratrees_shap_only_v1
+uv run python src/paddy_yield_ml/pipelines/carob_rule_causal_aipw.py --run-tag rule_aipw_v4_extratrees_shap_only --interp-dir outputs/carob_interpretability/iter5_extratrees_shap_only_v1
 ```
 
 Wrappers:
@@ -56,8 +59,9 @@ Wrappers:
 python scripts/run_carob_baseline.py
 python scripts/run_carob_feature_prepare.py
 python scripts/run_carob_model_compare.py
-python scripts/run_carob_interpretability.py --run-tag iter3_defensible_v5
-python scripts/run_carob_rule_causal_aipw.py --run-tag rule_aipw_v2
+python scripts/run_carob_model_tune_top2.py
+python scripts/run_carob_interpretability.py --run-tag iter5_extratrees_shap_only_v1
+python scripts/run_carob_rule_causal_aipw.py --run-tag rule_aipw_v4_extratrees_shap_only --interp-dir outputs/carob_interpretability/iter5_extratrees_shap_only_v1
 ```
 
 Make targets:
@@ -65,10 +69,27 @@ Make targets:
 make run-carob-baseline
 make run-carob-feature-prepare
 make run-carob-model-compare
+make run-carob-model-tune
 make run-carob-interpretability
 make run-carob-rule-causal-aipw
 make help
 ```
+
+## Rice What-If Yield Advisor (Streamlit)
+Launch the app from repo root:
+
+```bash
+uv run streamlit run streamlit_app.py --server.port 8501
+```
+
+Open `http://localhost:8501`.
+
+Current app behavior:
+- App title: `Rice What-If Yield Advisor`.
+- Numeric context and management controls are slider-based.
+- Operational mode shows prediction, SHAP explanation, and rule guidance.
+- Scientific mode additionally shows rule-level causal diagnostics (AIPW artifacts).
+- Rule table includes associated yield lift (`kg/ha`) per rule.
 
 ## Legacy (paddy) scope
 Paddy pipelines remain in the repository as legacy reference and compatibility paths.

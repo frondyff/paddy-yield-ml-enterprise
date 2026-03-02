@@ -1,25 +1,27 @@
 # The Story Our Interpretability Outputs Tell (End to End)
 
 This narrative is based on the authoritative interpretability run:
-- `outputs/carob_interpretability/iter3_defensible_v5`
+- `outputs/carob_interpretability/iter5_extratrees_shap_only_v1`
 
 ## Core Story
 The model has a real, repeatable signal, but the signal is context-dependent.  
 So we can use it for decision support, but not as a single universal rulebook across all countries.
 
 ## Act 1: Credibility Check
-From `outputs/carob_interpretability/iter3_defensible_v5/interpretability_runlog.txt`:
-- Holdout performance is moderate: `R2=0.5219`, `RMSE=960.13`, `MAE=692.92`.
-- SHAP and permutation top-10 overlap is `1.00` (full agreement on top features).
-- Average rule sign-match across seeds is `0.96` (rule direction is stable).
+From `outputs/carob_interpretability/iter5_extratrees_shap_only_v1/interpretability_runlog.txt`:
+- Holdout performance is moderate: `R2=0.4722`, `RMSE=1008.75`, `MAE=754.17`.
+- SHAP and permutation top-10 overlap is `0.90` (high agreement on top signals).
+- Average rule sign-match across seeds is `0.93` (rule direction is stable).
+- Explainability provenance is aligned: `primary_model_key=extratrees`, `shap_source=extratrees_treeshap`.
 - Pipeline verdict: `defensible_case=True`.
 
 Meaning:
 - These findings are not random artifacts.
-- The importance ranking and rule directions are stable enough to use as a defensible interpretability package.
+- The importance ranking and rule directions are stable enough to use as a defensible package.
+- Prediction and explanation now come from the same model family (no cross-model SHAP sensitivity path).
 
 ## Act 2: What Drives Predictions Globally
-From `outputs/carob_interpretability/iter3_defensible_v5/iteration2_feature_stability.csv`:
+From `outputs/carob_interpretability/iter5_extratrees_shap_only_v1/iteration2_feature_stability.csv`:
 - Stable modifiable drivers include: `variety`, `P_fertilizer`, `flooded`.
 - Strong context drivers include: `location`, `soil_P`, `soil_pH`, `country`.
 
@@ -28,7 +30,7 @@ Meaning:
 - Recommendations must account for context; otherwise, we risk overgeneralizing.
 
 ## Act 3: What Local Explanations Show
-From `outputs/carob_interpretability/iter3_defensible_v5/iteration1_local_cases_overview.csv` and local SHAP plots:
+From `outputs/carob_interpretability/iter5_extratrees_shap_only_v1/iteration1_local_cases_overview.csv` and local SHAP plots:
 - Some records are predicted closely.
 - Some extreme cases have large residuals (both over- and under-prediction).
 
@@ -37,9 +39,9 @@ Meaning:
 - Individual row-level predictions can still be uncertain, especially in edge cases.
 
 ## Act 4: Decision Regimes (Rules)
-From `outputs/carob_interpretability/iter3_defensible_v5/iteration3_rules_final.csv` and `iteration3_rules_final_english.md`:
+From `outputs/carob_interpretability/iter5_extratrees_shap_only_v1/iteration3_rules_final.csv` and `iteration3_rules_final_english.md`:
 - The final package includes 5 interpretable rules.
-- Rules are mostly built around irrigation/flooding plus phosphorus/potassium thresholds.
+- Rules are mostly built around irrigation/flooding plus phosphorus/nitrogen thresholds.
 - Rules include both positive and negative lift regimes.
 
 Meaning:
@@ -47,9 +49,9 @@ Meaning:
 
 ## Act 5: Cross-Country Transferability
 From:
-- `outputs/carob_interpretability/iter3_defensible_v5/iteration3_rule_country_generalization.csv`
-- `outputs/carob_interpretability/iter3_defensible_v5/iteration3_rule_country_summary.csv`
-- `outputs/carob_interpretability/iter3_defensible_v5/iteration3_action_playbook.md`
+- `outputs/carob_interpretability/iter5_extratrees_shap_only_v1/iteration3_rule_country_generalization.csv`
+- `outputs/carob_interpretability/iter5_extratrees_shap_only_v1/iteration3_rule_country_summary.csv`
+- `outputs/carob_interpretability/iter5_extratrees_shap_only_v1/iteration3_action_playbook.md`
 
 Key outcome:
 - Rules do not transfer uniformly across countries.
@@ -62,6 +64,7 @@ Key outcome:
 Meaning:
 - Use rules with a country applicability gate.
 - Do not deploy any rule globally without country-level validation status.
+- In the current run, status counts are: `works_here=4`, `unstable_or_small_effect=4`, `conflicts_here=1`, `insufficient_evidence=16`.
 
 ## What This Means for Decisions
 1. Prioritize stable modifiable levers globally (`variety`, `P_fertilizer`, `flooded`), but keep context controls.

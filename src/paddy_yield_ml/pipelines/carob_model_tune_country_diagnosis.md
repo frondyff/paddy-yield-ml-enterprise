@@ -1,44 +1,48 @@
-# CAROB Fine-Tuning Diagnosis: Benin and Tanzania
+# CAROB Country-Error Diagnosis (Benin and Tanzania)
 
-Date: 2026-02-26  
-Context: This note documents why RMSE ~900 was not feasible under the locked CAROB fine-tuning setup.
+Date: 2026-03-02  
+Purpose: document country-level error concentration findings used to guide tuning expectations.
 
-## Locked Setup
-- Model: CatBoost champion from `outputs/carob_model_tune/model_winners.csv`
-- Scenario: `modifiable_plus_context` (17 features)
-- Split: trial-aware 80/20
-- Seeds: `42, 52, 62`
+## Current Pipeline Context
+- Primary tuning pipeline: `src/paddy_yield_ml/pipelines/carob_model_tune_top2.py`
+- Primary scenario: `modifiable_plus_context` (17 features)
+- Current locked test results from `outputs/carob_model_tune_top2/model_winners.csv`:
+  - `ExtraTrees`: `R2=0.4792`, `RMSE=1002.02`, `MAE=749.09`
+  - `CatBoost`: `R2=0.4792`, `RMSE=1002.08`, `MAE=740.98`
+
+Interpretation:
+- Under the current train/validation/test protocol, both contenders land near RMSE ~1002.
+- This diagnosis explains why pushing substantially below that range is difficult.
+
+## Diagnostic Track Used
+The detailed country-error root-cause artifacts were produced in dedicated stress-test runs:
+- `outputs/carob_rmse_feasibility_diagnostics/*`
+- `outputs/carob_country_residual_correction/*`
+- `outputs/carob_country_root_cause/*`
+
+These diagnostics are supplemental to model selection, not a replacement for the locked test protocol.
 
 ## Main Findings
-- Error concentration is high. Top 10% of predictions explain 53.9% of SSE and top 20% explain 74.6%.
-- Country error is highly concentrated. Benin and Tanzania together explain about 85.0% of SSE.
-- Country-specific residual correction helped but was not enough. RMSE improved from 1083.40 to 1064.01 (delta -19.38), still far from 900.
-- Benin and Tanzania have high within-country and within-trial target spread.
-- Actionable levers are sparse in those countries because many modifiable features are constant.
-- Tanzania has major context missingness (for example soil variables), which likely hides key yield drivers.
-- Benin shows duplicate-feature inconsistency: same observed feature vector maps to very different yields.
+- Error concentration is high:
+  - top 10% predictions explain `53.9%` of SSE
+  - top 20% predictions explain `74.6%` of SSE
+- Country error concentration is extreme:
+  - Benin SSE share: `44.56%`
+  - Tanzania SSE share: `41.34%`
+  - Combined: about `85.0%` of SSE
+- Country residual correction helped, but only modestly:
+  - baseline RMSE mean: `1083.40`
+  - country residual correction RMSE mean: `1064.01`
+  - delta: `-19.38`
+- Signal limitations in top-error countries:
+  - Benin modifiable constancy: `4/7` constant (`57.14%`)
+  - Tanzania modifiable constancy: `5/7` constant (`71.43%`)
+  - Tanzania has severe missingness in key context fields (`soil_P`, `soil_pH`, etc.)
+  - Benin shows duplicate-feature inconsistency (same feature vector, wide yield spread)
 
-## Quantitative Evidence
-- Baseline overall: `R2=0.6076`, `RMSE=1083.40`, `MAE=798.96`
-- Country residual correction overall: `R2=0.6201`, `RMSE=1064.01`, `MAE=788.72`
-- Benin error share: `44.56%` SSE
-- Tanzania error share: `41.34%` SSE
-- Benin modifiable constancy: `4/7` constant (`57.14%`)
-- Tanzania modifiable constancy: `5/7` constant (`71.43%`)
-- Tanzania missingness examples: `soil_P=100%`, `soil_pH=72.16%`, `N_fertilizer=45.36%`, `K_fertilizer=45.36%`, `row_spacing=50%`
-- Benin duplicate feature combos: `12` combos, `36` rows (`6.56%` of Benin rows), max yield range inside same combo: `7642`
-
-## Interpretation
-- The model is not only under-tuned. The data signal appears limited in the two highest-error countries.
-- Large outcome spread remains after controlling for currently available features.
-- For Benin/Tanzania, several modifiable variables do not vary enough to explain trial-level yield differences.
-- Missing or unobserved drivers are likely significant, especially in Tanzania.
-- This is consistent with regression-to-mean behavior and persistent tail errors.
-
-## What This Means for Feasibility
-- RMSE ~900 is unlikely under the current locked feature set and split.
-- Country-specific residual correction is directionally useful but only closes a small part of the gap.
-- Additional gains likely require better country-specific signal, stronger trial-level context, or revised evaluation targets by country segment.
+## Practical Implication
+- Remaining error is not only a tuning issue; much of it appears tied to sparse or inconsistent country-level signal.
+- Incremental tuning may still help, but large RMSE step-downs are unlikely without additional reliable country-level predictors or cleaner context coverage.
 
 ## Supporting Artifacts
 - `outputs/carob_rmse_feasibility_diagnostics/champion_seed_metrics.csv`
