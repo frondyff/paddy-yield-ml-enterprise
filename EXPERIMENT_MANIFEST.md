@@ -74,8 +74,39 @@ Runner: `scripts/run_carob_model_tune_top2.py`
 Operational note:
 - Models are effectively tied on locked test; `ExtraTrees` is used as primary for alignment with explainability stack.
 
-Source:
+### 5.2 Learning Curve Investigation (Best Model Only)
+Purpose:
+- Check whether additional rows alone are likely to improve performance.
+
+Setup:
+- Model: `ExtraTrees` (selected winner from top-2 tuning).
+- Split policy: same trial-aware train/validation/test logic as tuning.
+- Train fractions evaluated: `0.2, 0.4, 0.6, 0.8, 1.0`.
+- Seeds: `3` (same stability seed set unless overridden).
+
+Key results (test-set means across seeds):
+- `0.2`: `R2=0.4673`, `RMSE=991.04`, `NRMSE/mean=0.3721`
+- `0.4`: `R2=0.4167`, `RMSE=1038.38`, `NRMSE/mean=0.3898`
+- `0.6`: `R2=0.4995`, `RMSE=962.15`, `NRMSE/mean=0.3611`
+- `0.8`: `R2=0.4889`, `RMSE=972.22`, `NRMSE/mean=0.3649`
+- `1.0`: `R2=0.4995`, `RMSE=962.18`, `NRMSE/mean=0.3611`
+
+Interpretation:
+- Performance improves from very small sample sizes but plateaus around `0.6+`.
+- This suggests diminishing returns from adding more rows of the same data type.
+- Next gains likely require better context signal (feature quality/coverage), not only more instances.
+
+Artifacts:
+- `outputs/carob_model_tune_top2/learning_curve_best_model_metrics.csv`
+- `outputs/carob_model_tune_top2/learning_curve_best_model_summary.csv`
+- `outputs/carob_model_tune_top2/learning_curve_best_model.png`
+
+Plot:
+![Best model learning curve](outputs/carob_model_tune_top2/learning_curve_best_model.png)
+
+Sources:
 - `outputs/carob_model_tune_top2/model_winners.csv`
+- `outputs/carob_model_tune_top2/learning_curve_best_model_summary.csv`
 
 ## 6) Interpretability Contract (Current)
 Pipeline: `src/paddy_yield_ml/pipelines/carob_interpretability.py`  
