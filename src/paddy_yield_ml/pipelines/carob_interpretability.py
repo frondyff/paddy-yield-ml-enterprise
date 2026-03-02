@@ -341,9 +341,10 @@ def fit_primary_model(
 def _base_feature_from_encoded_name(encoded_name: str, feature_names: list[str]) -> str:
     ordered = sorted(feature_names, key=len, reverse=True)
     for feat in ordered:
-        prefix = f"{feat}_"
-        if encoded_name == feat or encoded_name.startswith(prefix):
-            return feat
+        feat_str = str(feat)
+        prefix = f"{feat_str}_"
+        if encoded_name == feat_str or encoded_name.startswith(prefix):
+            return feat_str
     return encoded_name
 
 
@@ -421,10 +422,14 @@ def fit_primary_shap(
     shap_df = shap_df[bundle.x_test.columns.tolist()].copy()
 
     expected_raw = explainer.expected_value
-    if isinstance(expected_raw, (list, np.ndarray)):
-        expected_value = float(np.asarray(expected_raw, dtype=float).reshape(-1)[0])
+    if callable(expected_raw):
+        expected_value = float(np.mean(primary_pred_test))
     else:
-        expected_value = float(expected_raw)
+        expected_arr = np.asarray(expected_raw, dtype=float).reshape(-1)
+        if expected_arr.size == 0 or not np.isfinite(expected_arr[0]):
+            expected_value = float(np.mean(primary_pred_test))
+        else:
+            expected_value = float(expected_arr[0])
 
     pred_test = primary_pred_test.copy()
     return shap_df, expected_value, pred_test, "extratrees_treeshap"

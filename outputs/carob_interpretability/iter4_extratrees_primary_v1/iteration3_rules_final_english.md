@@ -1,7 +1,0 @@
-# Iteration 3 Final Rule Explanations (Plain English)
-
-- **R5**: If Irrigation indicator is Yes/1; and Nitrogen input (rate) is at or below 100.00; and Flooding condition is Yes/1; and Phosphorus input rate (rate) is at or below 15.00, this segment shows **higher yield by +1957.0 kg/ha** vs baseline (support: 10.6%).
-- **R4**: If Irrigation indicator is No/0, this segment shows **lower yield by -1261.6 kg/ha** vs baseline (support: 12.5%).
-- **R2**: If Irrigation indicator is Yes/1; and Nitrogen input (rate) is at or below 100.00; and Flooding condition is No/0; and Phosphorus input rate (rate) is above 11.00, this segment shows **higher yield by +348.8 kg/ha** vs baseline (support: 26.9%).
-- **R3**: If Irrigation indicator is Yes/1; and Nitrogen input (rate) is at or below 100.00; and Flooding condition is Yes/1; and Phosphorus input rate (rate) is above 15.00, this segment shows **higher yield by +360.3 kg/ha** vs baseline (support: 13.1%).
-- **R1**: If Irrigation indicator is Yes/1; and Nitrogen input (rate) is at or below 100.00; and Flooding condition is No/0; and Phosphorus input rate (rate) is at or below 11.00, this segment shows **lower yield by -311.4 kg/ha** vs baseline (support: 28.1%).

@@ -1,9 +1,0 @@
-feature,missing_count,missing_pct,cardinality,top_level,top_level_count,top_level_pct,rare_threshold_count,rare_level_count,rare_row_count,constant_flag,near_constant_flag
-Agriblock,0,0.0,6,Sankarapuram,502,21.471343028229256,24,0,0,False,False
-Wind Direction_D1_D30,0,0.0,6,SSE,502,21.471343028229256,24,0,0,False,False
-Wind Direction_D91_D120,0,0.0,6,NW,502,21.471343028229256,24,0,0,False,False
-Wind Direction_D31_D60,0,0.0,5,W,866,37.040205303678356,24,0,0,False,False
-Wind Direction_D61_D90,0,0.0,5,SE,754,32.24978614200171,24,0,0,False,False
-Variety,0,0.0,3,ponmani,895,38.280581693755344,24,0,0,False,False
-Nursery,0,0.0,2,dry,1255,53.67835757057314,24,0,0,False,False
-Soil Types,0,0.0,2,clay,1268,54.2343883661249,24,0,0,False,False

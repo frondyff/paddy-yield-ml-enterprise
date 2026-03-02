@@ -1,7 +1,0 @@
-feature,group,n_rows,spearman
-Pest_60Day(in ml),Chinnasalem,358,0.6143329926197555
-Pest_60Day(in ml),Cuddalore,364,0.5328007507898729
-Pest_60Day(in ml),Kallakurichi,353,0.5307178506448055
-Pest_60Day(in ml),Kurinjipadi,401,0.6008726219222631
-Pest_60Day(in ml),Panruti,360,0.6408177552859847
-Pest_60Day(in ml),Sankarapuram,502,0.6521250915338724

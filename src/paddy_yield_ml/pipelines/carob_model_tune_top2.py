@@ -903,7 +903,7 @@ def main() -> None:
                 "model_key": model_key,
                 "model": model_label.get(model_key, model_key),
                 "params_json": json.dumps(params, sort_keys=True),
-                "selected_config_rank": int(stable["config_rank"]),
+                "selected_config_rank": as_int(stable["config_rank"], name="config_rank"),
                 "selection_strategy": "validation_stability_mean",
                 "selection_seed_set": ",".join(str(s) for s in stability_seeds),
                 "selection_seed_count": len(stability_seeds),
@@ -918,11 +918,11 @@ def main() -> None:
                 "n_train_plus_validation": m_test["n_train_plus_validation"],
                 "n_test": m_test["n_test"],
                 "n_trials_in_test": m_test["n_trials_in_test"],
-                "val_r2_mean_stability": float(stable["val_r2_mean"]),
-                "val_rmse_mean_stability": float(stable["val_rmse_mean"]),
-                "test_r2_mean_stability": float(stable["test_r2_mean"]),
-                "test_rmse_mean_stability": float(stable["test_rmse_mean"]),
-                "test_rmse_worst_stability": float(stable["test_rmse_worst"]),
+                "val_r2_mean_stability": as_float(stable["val_r2_mean"], name="val_r2_mean"),
+                "val_rmse_mean_stability": as_float(stable["val_rmse_mean"], name="val_rmse_mean"),
+                "test_r2_mean_stability": as_float(stable["test_r2_mean"], name="test_r2_mean"),
+                "test_rmse_mean_stability": as_float(stable["test_rmse_mean"], name="test_rmse_mean"),
+                "test_rmse_worst_stability": as_float(stable["test_rmse_worst"], name="test_rmse_worst"),
             }
         )
         print(

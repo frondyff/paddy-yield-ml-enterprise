@@ -1,8 +1,0 @@
-stage_label,stage_start_day,stage_end_day,n_features,n_modifiable,n_context,n_proxy,top_feature,top_abs_association,mean_abs_assoc_modifiable,mean_abs_assoc_context
-D1_D30,1.0,30.0,7,0,0,7,Inst Wind Speed_D1_D30(in Knots),0.03309552122490674,,
-D30_D50,30.0,50.0,2,0,0,2,30_50DRain( in mm),0.005830014793687751,,
-D31_D60,31.0,60.0,5,0,0,5,Max temp_D31_D60,0.011631233068682892,,
-D51_D70,51.0,70.0,2,0,0,2,51_70DRain(in mm),0.005830014793687751,,
-D61_D90,61.0,90.0,5,0,0,5,Inst Wind Speed_D61_D90(in Knots),0.032673247976039634,,
-D71_D105,71.0,105.0,2,0,0,2,71_105DRain(in mm),0.005830014793687751,,
-D91_D120,91.0,120.0,5,0,0,5,Inst Wind Speed_D91_D120(in Knots),0.012662965452153426,,
