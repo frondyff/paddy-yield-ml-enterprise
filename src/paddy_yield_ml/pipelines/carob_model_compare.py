@@ -30,6 +30,7 @@ CANDIDATES_PATH = project_root / "outputs" / "carob_feature_prepare" / "hybrid_s
 DEFAULT_SCENARIO = "modifiable_plus_context"
 DEFAULT_MODELS = "random_forest,extra_trees,catboost,xgboost,lightgbm"
 DEFAULT_TEST_SIZE = 0.2
+DEFAULT_VAL_SIZE = 0.2
 
 
 @dataclass(frozen=True)
@@ -293,32 +294,77 @@ def build_trial_aware_split_indices(
     test_size: float = DEFAULT_TEST_SIZE,
     random_state: int = 42,
 ) -> tuple[np.ndarray, np.ndarray]:
+    """Backward-compatible train/test split helper."""
+    tr, _val, te = build_trial_aware_train_val_test_indices(
+        groups=groups,
+        test_size=test_size,
+        val_size=DEFAULT_VAL_SIZE,
+        random_state=random_state,
+    )
+    return tr, te
+
+
+def build_trial_aware_train_val_test_indices(
+    groups: pd.Series,
+    *,
+    test_size: float = DEFAULT_TEST_SIZE,
+    val_size: float = DEFAULT_VAL_SIZE,
+    random_state: int = 42,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Build train/validation/test indices with within-trial random splits."""
     if test_size <= 0.0 or test_size >= 1.0:
         raise ValueError("test_size must be in (0, 1).")
+    if val_size <= 0.0 or val_size >= 1.0:
+        raise ValueError("val_size must be in (0, 1).")
+    if test_size + val_size >= 1.0:
+        raise ValueError("test_size + val_size must be < 1.")
 
     g = groups.astype(str).reset_index(drop=True)
     rng = np.random.default_rng(random_state)
+
     train_idx: list[int] = []
+    val_idx: list[int] = []
     test_idx: list[int] = []
 
+    val_share_remaining = float(val_size / (1.0 - test_size))
     grouped = g.groupby(g, sort=True).indices
+
     for _, idx_list in grouped.items():
         arr = np.array(sorted(idx_list), dtype=int)
         rng.shuffle(arr)
         n = len(arr)
+
         if n < 2:
             train_idx.extend(arr.tolist())
             continue
+
+        if n == 2:
+            test_idx.append(int(arr[0]))
+            train_idx.append(int(arr[1]))
+            continue
+
         n_test = int(np.floor(test_size * n))
-        n_test = min(max(n_test, 1), n - 1)
+        n_test = min(max(n_test, 1), n - 2)
+        remaining = n - n_test
+
+        n_val = int(np.floor(val_share_remaining * remaining))
+        n_val = min(max(n_val, 1), remaining - 1)
+
         test_idx.extend(arr[:n_test].tolist())
-        train_idx.extend(arr[n_test:].tolist())
+        val_idx.extend(arr[n_test : n_test + n_val].tolist())
+        train_idx.extend(arr[n_test + n_val :].tolist())
 
     tr = np.array(sorted(train_idx), dtype=int)
+    va = np.array(sorted(val_idx), dtype=int)
     te = np.array(sorted(test_idx), dtype=int)
+
+    if len(tr) == 0:
+        raise ValueError("Trial-aware split produced an empty train set.")
+    if len(va) == 0:
+        raise ValueError("Trial-aware split produced an empty validation set.")
     if len(te) == 0:
         raise ValueError("Trial-aware split produced an empty test set.")
-    return tr, te
+    return tr, va, te
 
 
 def impute_numeric_by_group(
@@ -360,35 +406,35 @@ def impute_numeric_by_group(
     return xtr, xte
 
 
-def evaluate_trial_aware(
-    frame: pd.DataFrame,
-    features: list[str],
-    model_spec: ModelSpec,
-    params: dict[str, object],
-    *,
-    test_size: float,
-    random_state: int,
-    trial_median_impute: bool = True,
-) -> tuple[pd.DataFrame, dict[str, object]]:
+def prepare_modeling_subset(frame: pd.DataFrame, features: list[str]) -> tuple[pd.DataFrame, pd.Series, pd.Series]:
     subset = frame[features + [cc.TARGET_COL, cc.GROUP_COL]].copy()
     subset[cc.TARGET_COL] = pd.to_numeric(subset[cc.TARGET_COL], errors="coerce")
     subset = subset[subset[cc.TARGET_COL].notna() & subset[cc.GROUP_COL].notna()].reset_index(drop=True)
-
     x = subset[features].copy()
     y = subset[cc.TARGET_COL].copy()
     groups = subset[cc.GROUP_COL].astype(str)
+    return x, y, groups
 
-    tr_idx, te_idx = build_trial_aware_split_indices(groups=groups, test_size=test_size, random_state=random_state)
-    xtr, xte = x.iloc[tr_idx].copy(), x.iloc[te_idx].copy()
-    ytr, yte = y.iloc[tr_idx], y.iloc[te_idx]
-    gtr, gte = groups.iloc[tr_idx].astype(str), groups.iloc[te_idx].astype(str)
 
+def fit_and_predict(
+    *,
+    model_spec: ModelSpec,
+    params: dict[str, object],
+    x_train: pd.DataFrame,
+    y_train: pd.Series,
+    x_eval: pd.DataFrame,
+    groups_train: pd.Series,
+    groups_eval: pd.Series,
+    trial_median_impute: bool,
+) -> tuple[np.ndarray, float]:
+    xtr = x_train.copy()
+    xev = x_eval.copy()
     if trial_median_impute:
-        xtr, xte = impute_numeric_by_group(
+        xtr, xev = impute_numeric_by_group(
             x_train=xtr,
-            x_test=xte,
-            groups_train=gtr,
-            groups_test=gte,
+            x_test=xev,
+            groups_train=groups_train.astype(str),
+            groups_test=groups_eval.astype(str),
         )
 
     pipeline = Pipeline(
@@ -397,51 +443,75 @@ def evaluate_trial_aware(
             ("model", model_spec.build(params)),
         ]
     )
-
     t0 = time.perf_counter()
-    pipeline.fit(xtr, ytr)
+    pipeline.fit(xtr, y_train)
     fit_seconds = float(time.perf_counter() - t0)
-    pred = pipeline.predict(xte)
+    pred = pipeline.predict(xev)
+    return pred, fit_seconds
 
-    trial_rows: list[dict[str, object]] = []
-    gte_reset = gte.reset_index(drop=True)
-    yte_reset = yte.reset_index(drop=True)
-    pred_s = pd.Series(pred)
-    for trial in sorted(gte_reset.unique().tolist()):
-        mask = gte_reset == trial
-        y_true_t = yte_reset[mask]
-        y_pred_t = pred_s[mask]
-        trial_rows.append(
+
+def regression_metrics(y_true: pd.Series, pred: np.ndarray) -> dict[str, float]:
+    return {
+        "mae": float(mean_absolute_error(y_true, pred)),
+        "rmse": float(np.sqrt(mean_squared_error(y_true, pred))),
+        "r2": float(r2_score(y_true, pred)),
+    }
+
+
+def trial_level_metrics(
+    *,
+    groups_eval: pd.Series,
+    y_true: pd.Series,
+    pred: np.ndarray,
+) -> pd.DataFrame:
+    rows: list[dict[str, object]] = []
+    g = groups_eval.reset_index(drop=True).astype(str)
+    yt = y_true.reset_index(drop=True)
+    yp = pd.Series(pred)
+    for trial in sorted(g.unique().tolist()):
+        mask = g == trial
+        yt_t = yt[mask]
+        yp_t = yp[mask]
+        rows.append(
             {
                 "trial_id": str(trial),
                 "n_test": int(mask.sum()),
-                "mae": float(mean_absolute_error(y_true_t, y_pred_t)),
-                "rmse": float(np.sqrt(mean_squared_error(y_true_t, y_pred_t))),
-                "r2": float(r2_score(y_true_t, y_pred_t)),
+                "mae": float(mean_absolute_error(yt_t, yp_t)),
+                "rmse": float(np.sqrt(mean_squared_error(yt_t, yp_t))),
+                "r2": float(r2_score(yt_t, yp_t)),
             }
         )
+    return pd.DataFrame(rows)
 
-    summary = {
-        "model": model_spec.name,
-        "model_key": model_spec.key,
-        "params_json": json.dumps(params, sort_keys=True),
-        "n_features": int(len(features)),
-        "n_trials_in_test": int(gte.nunique()),
-        "n_train": int(len(tr_idx)),
-        "n_test": int(len(te_idx)),
-        "mae": float(mean_absolute_error(yte, pred)),
-        "rmse": float(np.sqrt(mean_squared_error(yte, pred))),
-        "r2": float(r2_score(yte, pred)),
-        "fit_seconds": fit_seconds,
-    }
-    return pd.DataFrame(trial_rows), summary
+
+def split_audit_rows(
+    *,
+    groups: pd.Series,
+    train_idx: np.ndarray,
+    val_idx: np.ndarray,
+    test_idx: np.ndarray,
+) -> pd.DataFrame:
+    g = groups.astype(str).reset_index(drop=True)
+    rows: list[dict[str, object]] = []
+    idx_map = [
+        ("train", train_idx),
+        ("validation", val_idx),
+        ("test", test_idx),
+    ]
+    for split_name, idx in idx_map:
+        for i in idx.tolist():
+            rows.append({"row_index": int(i), "trial_id": str(g.iloc[i]), "split": split_name})
+    return pd.DataFrame(rows).sort_values(["split", "trial_id", "row_index"]).reset_index(drop=True)
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="CAROB model comparison with trial-aware 80/20 split.")
+    parser = argparse.ArgumentParser(
+        description="CAROB model comparison with trial-aware train/validation/test split."
+    )
     parser.add_argument("--scenario", type=str, default=DEFAULT_SCENARIO)
     parser.add_argument("--models", type=str, default=DEFAULT_MODELS)
     parser.add_argument("--test-size", type=float, default=DEFAULT_TEST_SIZE)
+    parser.add_argument("--val-size", type=float, default=DEFAULT_VAL_SIZE)
     parser.add_argument("--random-state", type=int, default=42)
     parser.add_argument("--trial-median-impute", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--candidates-path", type=str, default=str(CANDIDATES_PATH))
@@ -468,42 +538,152 @@ def main() -> None:
     )
     scenario_feature_df.to_csv(out_dir / "scenario_feature_sets.csv", index=False)
 
+    x, y, groups = prepare_modeling_subset(frame, features)
+    tr_idx, va_idx, te_idx = build_trial_aware_train_val_test_indices(
+        groups=groups,
+        test_size=float(args.test_size),
+        val_size=float(args.val_size),
+        random_state=int(args.random_state),
+    )
+    xtr, xva, xte = x.iloc[tr_idx].copy(), x.iloc[va_idx].copy(), x.iloc[te_idx].copy()
+    ytr, yva, yte = y.iloc[tr_idx].copy(), y.iloc[va_idx].copy(), y.iloc[te_idx].copy()
+    gtr, gva, gte = groups.iloc[tr_idx].copy(), groups.iloc[va_idx].copy(), groups.iloc[te_idx].copy()
+
+    split_rows = split_audit_rows(groups=groups, train_idx=tr_idx, val_idx=va_idx, test_idx=te_idx)
+    split_rows.to_csv(out_dir / "within_trial_split_definition.csv", index=False)
+    split_summary = (
+        split_rows.groupby("split", dropna=False)
+        .agg(n_rows=("row_index", "size"), n_trials=("trial_id", "nunique"))
+        .reset_index()
+    )
+    split_summary.to_csv(out_dir / "train_validate_test_split_summary.csv", index=False)
+    split_trial_counts = (
+        split_rows.groupby(["trial_id", "split"], dropna=False)
+        .size()
+        .unstack(fill_value=0)
+        .reset_index()
+        .sort_values("trial_id")
+        .reset_index(drop=True)
+    )
+    split_trial_counts.to_csv(out_dir / "train_validate_test_trial_counts.csv", index=False)
+
     model_specs = build_model_specs(parse_model_list(args.models), args.random_state)
 
-    trial_all: list[pd.DataFrame] = []
+    validation_rows: list[dict[str, object]] = []
+    test_trial_all: list[pd.DataFrame] = []
     summary_rows: list[dict[str, object]] = []
     for spec in model_specs:
         print(f"\nModel: {spec.name}")
+        model_val_rows: list[dict[str, object]] = []
         for i, params in enumerate(spec.param_grid, start=1):
-            trial_df, summary = evaluate_trial_aware(
-                frame=frame,
-                features=features,
+            pred_val, fit_seconds_val = fit_and_predict(
                 model_spec=spec,
                 params=params,
-                test_size=float(args.test_size),
-                random_state=int(args.random_state),
+                x_train=xtr,
+                y_train=ytr,
+                x_eval=xva,
+                groups_train=gtr,
+                groups_eval=gva,
                 trial_median_impute=bool(args.trial_median_impute),
             )
-            trial_df.insert(0, "model", spec.name)
-            trial_df.insert(1, "param_set", i)
-            trial_df.insert(2, "scenario", args.scenario)
-            summary["param_set"] = i
-            summary["scenario"] = args.scenario
-            trial_all.append(trial_df)
-            summary_rows.append(summary)
+            m_val = regression_metrics(yva, pred_val)
+            row = {
+                "model": spec.name,
+                "model_key": spec.key,
+                "param_set": int(i),
+                "params_json": json.dumps(params, sort_keys=True),
+                "scenario": args.scenario,
+                "n_features": int(len(features)),
+                "n_train": int(len(tr_idx)),
+                "n_validation": int(len(va_idx)),
+                "n_test": int(len(te_idx)),
+                "val_mae": m_val["mae"],
+                "val_rmse": m_val["rmse"],
+                "val_r2": m_val["r2"],
+                "fit_seconds_validation": fit_seconds_val,
+            }
+            model_val_rows.append(row)
+            validation_rows.append(row)
             print(
-                f"  set={i} | R2={summary['r2']:.4f} | RMSE={summary['rmse']:.2f} | MAE={summary['mae']:.2f} "
-                f"| params={params}"
+                f"  set={i} | VAL_R2={m_val['r2']:.4f} | VAL_RMSE={m_val['rmse']:.2f} "
+                f"| VAL_MAE={m_val['mae']:.2f} | params={params}"
             )
 
-    trial_metrics = pd.concat(trial_all, ignore_index=True)
+        model_val_df = pd.DataFrame(model_val_rows).sort_values(
+            ["val_r2", "val_rmse"],
+            ascending=[False, True],
+        )
+        best_val = model_val_df.iloc[0]
+        best_param_set = int(best_val["param_set"])
+        best_params = json.loads(str(best_val["params_json"]))
+
+        x_train_final = pd.concat([xtr, xva], axis=0, ignore_index=True)
+        y_train_final = pd.concat([ytr, yva], axis=0, ignore_index=True)
+        g_train_final = pd.concat([gtr, gva], axis=0, ignore_index=True)
+
+        pred_test, fit_seconds_test = fit_and_predict(
+            model_spec=spec,
+            params=best_params,
+            x_train=x_train_final,
+            y_train=y_train_final,
+            x_eval=xte,
+            groups_train=g_train_final,
+            groups_eval=gte,
+            trial_median_impute=bool(args.trial_median_impute),
+        )
+        m_test = regression_metrics(yte, pred_test)
+        trial_df = trial_level_metrics(groups_eval=gte, y_true=yte, pred=pred_test)
+        trial_df.insert(0, "model", spec.name)
+        trial_df.insert(1, "model_key", spec.key)
+        trial_df.insert(2, "scenario", args.scenario)
+        trial_df.insert(3, "selected_param_set", best_param_set)
+        test_trial_all.append(trial_df)
+
+        summary_rows.append(
+            {
+                "model": spec.name,
+                "model_key": spec.key,
+                "params_json": json.dumps(best_params, sort_keys=True),
+                "param_set": best_param_set,
+                "n_features": int(len(features)),
+                "n_trials_in_test": int(gte.nunique()),
+                "n_train": int(len(tr_idx)),
+                "n_validation": int(len(va_idx)),
+                "n_train_plus_validation": int(len(tr_idx) + len(va_idx)),
+                "n_test": int(len(te_idx)),
+                "mae": m_test["mae"],
+                "rmse": m_test["rmse"],
+                "r2": m_test["r2"],
+                "val_mae": float(best_val["val_mae"]),
+                "val_rmse": float(best_val["val_rmse"]),
+                "val_r2": float(best_val["val_r2"]),
+                "fit_seconds_validation": float(best_val["fit_seconds_validation"]),
+                "fit_seconds_test": fit_seconds_test,
+                "selection_split": "validation",
+                "scenario": args.scenario,
+            }
+        )
+        print(
+            f"  selected set={best_param_set} | TEST_R2={m_test['r2']:.4f} "
+            f"| TEST_RMSE={m_test['rmse']:.2f} | TEST_MAE={m_test['mae']:.2f}"
+        )
+
+    validation_df = (
+        pd.DataFrame(validation_rows)
+        .sort_values(["model", "val_r2", "val_rmse"], ascending=[True, False, True])
+        .reset_index(drop=True)
+    )
+    validation_df.to_csv(out_dir / "validation_grid_results.csv", index=False)
+
+    test_trial_metrics = pd.concat(test_trial_all, ignore_index=True)
+    test_trial_metrics.to_csv(out_dir / "trial_aware_trial_metrics.csv", index=False)
+
     summary_df = pd.DataFrame(summary_rows).sort_values(["r2", "rmse"], ascending=[False, True]).reset_index(drop=True)
 
-    trial_metrics.to_csv(out_dir / "trial_aware_trial_metrics.csv", index=False)
     summary_df.to_csv(out_dir / "model_comparison_summary.csv", index=False)
 
     best = summary_df.iloc[0]
-    print("\nBest configuration:")
+    print("\nBest model (selected on validation, reported on test):")
     print(best.to_string())
     print(f"\nSaved CAROB model-compare outputs to: {out_dir}")
 
