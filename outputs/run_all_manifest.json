@@ -6,14 +6,14 @@
     "meta_file": "data/metadata/carob_amazxa_meta.csv"
   },
   "run_tags": {
-    "interpretability": "iter3_defensible_v5",
-    "causal": "rule_aipw_v2"
+    "interpretability": "iter5_extratrees_shap_only_v1",
+    "causal": "rule_aipw_v4_extratrees_shap_only"
   },
   "outputs": {
     "feature_prepare": "outputs/carob_feature_prepare",
     "model_compare": "outputs/carob_model_compare",
     "model_tune_top2": "outputs/carob_model_tune_top2",
-    "interpretability": "outputs/carob_interpretability/iter3_defensible_v5",
-    "causal_rule_aipw": "outputs/carob_rule_causal_aipw/rule_aipw_v2"
+    "interpretability": "outputs/carob_interpretability/iter5_extratrees_shap_only_v1",
+    "causal_rule_aipw": "outputs/carob_rule_causal_aipw/rule_aipw_v4_extratrees_shap_only"
   }
 }

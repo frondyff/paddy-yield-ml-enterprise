@@ -1,4 +1,4 @@
-"""CAROB what-if decision support UI with optional scientific evidence mode."""
+"""Rice what-if decision support UI with optional scientific evidence mode."""
 
 from __future__ import annotations
 
@@ -12,7 +12,6 @@ from typing import Any
 
 import pandas as pd
 import streamlit as st
-from catboost import CatBoostRegressor
 from sklearn.pipeline import Pipeline
 from sklearn.tree import DecisionTreeRegressor
 
@@ -63,13 +62,15 @@ from paddy_yield_ml.pipelines import carob_model_compare as cm  # noqa: E402
 
 DEFAULT_SCENARIO = "modifiable_plus_context"
 DEFAULT_MODEL_COMPARE_DIR = "carob_model_compare"
-DEFAULT_INTERPRETABILITY_RUN_TAG = "iter3_defensible_v5"
-DEFAULT_CAUSAL_RUN_TAG = "rule_aipw_v2"
+DEFAULT_INTERPRETABILITY_RUN_TAG = "iter5_extratrees_shap_only_v1"
+DEFAULT_CAUSAL_RUN_TAG = "rule_aipw_v4_extratrees_shap_only"
+DEFAULT_TUNING_DIR = "carob_model_tune_top2"
 
 OUTPUTS_DIR = PROJECT_ROOT / "outputs"
 CANDIDATES_PATH = OUTPUTS_DIR / "carob_feature_prepare" / "hybrid_selection_candidates.csv"
 DICT_PATH = PROJECT_ROOT / "data" / "metadata" / "data_dictionary_carob_amazxa.csv"
 RUN_MANIFEST_PATH = OUTPUTS_DIR / "run_all_manifest.json"
+TUNING_DIR = OUTPUTS_DIR / DEFAULT_TUNING_DIR
 
 INTERPRETABILITY_BASE = OUTPUTS_DIR / "carob_interpretability"
 CAUSAL_RULE_BASE = OUTPUTS_DIR / "carob_rule_causal_aipw"
@@ -329,38 +330,123 @@ def _load_model_summary(model_compare_dir: str) -> tuple[pd.DataFrame, Path | No
     return df, path, diagnostics
 
 
-def _select_catboost_params(summary_df: pd.DataFrame, scenario: str) -> dict[str, Any]:
-    if summary_df.empty:
-        return {"n_estimators": 300, "learning_rate": 0.05, "depth": 6, "l2_leaf_reg": 3.0}
+def _normalize_model_key(raw: str) -> str:
+    key = str(raw).strip().lower()
+    mapping = {
+        "extratrees": "extra_trees",
+        "extra_trees": "extra_trees",
+        "randomforest": "random_forest",
+        "random_forest": "random_forest",
+        "catboost": "catboost",
+        "xgboost": "xgboost",
+        "lightgbm": "lightgbm",
+    }
+    return mapping.get(key, key)
 
-    rows = summary_df.copy()
-    rows["scenario"] = rows["scenario"].astype(str)
-    rows = rows[rows["model_key"].astype(str).str.lower() == "catboost"].copy()
-    if rows.empty:
-        return {"n_estimators": 300, "learning_rate": 0.05, "depth": 6, "l2_leaf_reg": 3.0}
 
-    rows_scenario = rows[rows["scenario"] == scenario].copy()
-    if not rows_scenario.empty:
-        rows = rows_scenario
-
-    rows = rows.sort_values(["r2", "rmse"], ascending=[False, True]).reset_index(drop=True)
-    raw = str(rows.loc[0, "params_json"])
+def _parse_params_json(raw: object) -> dict[str, Any]:
+    if not isinstance(raw, str):
+        return {}
     try:
         params = json.loads(raw)
     except json.JSONDecodeError:
-        params = {}
+        return {}
+    return params if isinstance(params, dict) else {}
 
-    if not isinstance(params, dict):
-        params = {}
-    if "iterations" in params and "n_estimators" not in params:
-        params["n_estimators"] = int(params["iterations"])
 
+def _load_tuned_winner(scenario: str) -> tuple[dict[str, Any] | None, Path | None, list[str]]:
+    diagnostics: list[str] = []
+    winners_df, winners_path = _read_csv_candidates(
+        [TUNING_DIR / "model_winners.csv"],
+        required_cols={"model", "model_key", "params_json", "test_r2", "test_rmse"},
+        label="Model tune winners",
+        diagnostics=diagnostics,
+    )
+    if winners_df.empty:
+        return None, winners_path, diagnostics
+
+    rows = winners_df.copy()
+    if "scenario" in rows.columns:
+        scoped = rows[rows["scenario"].astype(str) == scenario].copy()
+        if not scoped.empty:
+            rows = scoped
+
+    rows["model_key_normalized"] = rows["model_key"].astype(str).map(_normalize_model_key)
+    rows = rows.sort_values(["test_r2", "test_rmse"], ascending=[False, True]).reset_index(drop=True)
+    top = rows.iloc[0]
+    params = _parse_params_json(top.get("params_json", ""))
+
+    return (
+        {
+            "model": str(top.get("model", top.get("model_key_normalized", "unknown"))),
+            "model_key": str(top.get("model_key_normalized", "catboost")),
+            "params": params,
+            "test_r2": float(top.get("test_r2", float("nan"))),
+            "test_rmse": float(top.get("test_rmse", float("nan"))),
+            "test_mae": float(top.get("test_mae", float("nan"))),
+        },
+        winners_path,
+        diagnostics,
+    )
+
+
+def _select_best_from_model_compare(summary_df: pd.DataFrame, scenario: str) -> dict[str, Any] | None:
+    if summary_df.empty:
+        return None
+
+    rows = summary_df.copy()
+    if "scenario" in rows.columns:
+        scoped = rows[rows["scenario"].astype(str) == scenario].copy()
+        if not scoped.empty:
+            rows = scoped
+    rows = rows.sort_values(["r2", "rmse"], ascending=[False, True]).reset_index(drop=True)
+    top = rows.iloc[0]
     return {
-        "n_estimators": int(params.get("n_estimators", 300)),
-        "learning_rate": float(params.get("learning_rate", 0.05)),
-        "depth": int(params.get("depth", 6)),
-        "l2_leaf_reg": float(params.get("l2_leaf_reg", 3.0)),
+        "model": str(top.get("model", "unknown")),
+        "model_key": _normalize_model_key(str(top.get("model_key", ""))),
+        "params": _parse_params_json(top.get("params_json", "")),
+        "test_r2": float(top.get("r2", float("nan"))),
+        "test_rmse": float(top.get("rmse", float("nan"))),
+        "test_mae": float(top.get("mae", float("nan"))),
     }
+
+
+def _build_serving_estimator(model_key: str, params: dict[str, Any], diagnostics: list[str]) -> object:
+    normalized_key = _normalize_model_key(model_key)
+    try:
+        spec = cm.build_model_specs([normalized_key], random_state=42)[0]
+        return spec.build(params)
+    except Exception as exc:
+        diagnostics.append(
+            f"Serving model build failed for '{normalized_key}' ({type(exc).__name__}: {exc}). "
+            "Falling back to default CatBoost."
+        )
+        fallback_spec = cm.build_model_specs(["catboost"], random_state=42)[0]
+        fallback_params: dict[str, Any] = {
+            "n_estimators": 300,
+            "learning_rate": 0.05,
+            "depth": 6,
+            "l2_leaf_reg": 3.0,
+        }
+        return fallback_spec.build(fallback_params)
+
+
+def _load_learning_curve_assets() -> tuple[pd.DataFrame, Path | None, Path | None, list[str]]:
+    diagnostics: list[str] = []
+    summary_df, summary_path = _read_csv_candidates(
+        [TUNING_DIR / "learning_curve_best_model_summary.csv"],
+        required_cols={"train_fraction", "test_r2_mean", "test_rmse_mean", "test_nrmse_mean_mean"},
+        label="Learning curve summary",
+        diagnostics=diagnostics,
+    )
+    if not summary_df.empty:
+        summary_df = summary_df.sort_values("train_fraction").reset_index(drop=True)
+    plot_path = TUNING_DIR / "learning_curve_best_model.png"
+    if not plot_path.exists():
+        plot_path = None
+        diagnostics.append("Learning curve plot not found.")
+
+    return summary_df, summary_path, plot_path, diagnostics
 
 
 def _build_display_profiles(frame: pd.DataFrame) -> pd.DataFrame:
@@ -533,6 +619,10 @@ def load_serving_bundle(project_root_str: str, scenario: str, model_compare_dir:
 
     summary_df, summary_path, summary_diag = _load_model_summary(model_compare_dir)
     diagnostics.extend(summary_diag)
+    tuned_winner, tuned_winner_path, tuned_diag = _load_tuned_winner(scenario)
+    diagnostics.extend(tuned_diag)
+    learning_curve_df, learning_curve_path, learning_curve_plot_path, lc_diag = _load_learning_curve_assets()
+    diagnostics.extend(lc_diag)
 
     frame = cm.load_frame_with_country_gate(candidates_path)
     frame = frame.loc[:, ~frame.columns.duplicated()].copy()
@@ -556,16 +646,33 @@ def load_serving_bundle(project_root_str: str, scenario: str, model_compare_dir:
     modifiable = [f for f in cm.dedupe_keep_order(modifiable) if f in features]
     context = [f for f in features if f not in modifiable]
 
-    params = _select_catboost_params(summary_df=summary_df, scenario=scenario)
-    model = CatBoostRegressor(
-        n_estimators=int(params.get("n_estimators", 300)),
-        learning_rate=float(params.get("learning_rate", 0.05)),
-        depth=int(params.get("depth", 6)),
-        l2_leaf_reg=float(params.get("l2_leaf_reg", 3.0)),
-        loss_function="RMSE",
-        random_seed=42,
-        verbose=0,
-        allow_writing_files=False,
+    serving_source = "tuned_winner"
+    serving_choice = tuned_winner
+    if serving_choice is None:
+        serving_source = "model_compare_fallback"
+        serving_choice = _select_best_from_model_compare(summary_df=summary_df, scenario=scenario)
+
+    if serving_choice is None:
+        serving_source = "default_fallback"
+        serving_choice = {
+            "model": "CatBoost",
+            "model_key": "catboost",
+            "params": {
+                "n_estimators": 300,
+                "learning_rate": 0.05,
+                "depth": 6,
+                "l2_leaf_reg": 3.0,
+            },
+            "test_r2": float("nan"),
+            "test_rmse": float("nan"),
+            "test_mae": float("nan"),
+        }
+        diagnostics.append("No tuned winner/model-compare winner found. Using default CatBoost.")
+
+    model = _build_serving_estimator(
+        model_key=str(serving_choice.get("model_key", "catboost")),
+        params=dict(serving_choice.get("params", {})),
+        diagnostics=diagnostics,
     )
 
     preprocessor = cm.make_preprocessor(modeling[features])
@@ -585,9 +692,19 @@ def load_serving_bundle(project_root_str: str, scenario: str, model_compare_dir:
         "features": features,
         "modifiable": modifiable,
         "context": context,
-        "params": params,
+        "serving_model_name": str(serving_choice.get("model", "unknown")),
+        "serving_model_key": str(serving_choice.get("model_key", "unknown")),
+        "serving_params": dict(serving_choice.get("params", {})),
+        "serving_source": serving_source,
+        "serving_test_r2": float(serving_choice.get("test_r2", float("nan"))),
+        "serving_test_rmse": float(serving_choice.get("test_rmse", float("nan"))),
+        "serving_test_mae": float(serving_choice.get("test_mae", float("nan"))),
         "summary_df": summary_df,
         "summary_path": summary_path,
+        "tuned_winner_path": tuned_winner_path,
+        "learning_curve_summary_df": learning_curve_df,
+        "learning_curve_summary_path": learning_curve_path,
+        "learning_curve_plot_path": learning_curve_plot_path,
         "surrogate_rules": surrogate_rules,
         "diagnostics": diagnostics,
     }
@@ -897,35 +1014,12 @@ def render_feature_input(
         lo, hi = _numeric_bounds(reference_all)
         country_num = pd.to_numeric(reference_country, errors="coerce").dropna()
         all_num = pd.to_numeric(reference_all, errors="coerce").dropna()
-        all_levels = _numeric_unique_levels(reference_all, max_levels=10)
 
         if context_mode:
             context_ref = country_num if not country_num.empty else all_num
             default = _safe_default_numeric(None, context_ref, fallback=(lo + hi) / 2.0)
         else:
             default = _safe_default_numeric(current_value, all_num, fallback=(lo + hi) / 2.0)
-
-        # Sidebar context controls: if a numeric feature is effectively binary/discrete
-        # (2 global levels), use a dropdown instead of a continuous slider.
-        if context_mode and len(all_levels) == 2:
-            low, high = all_levels[0], all_levels[1]
-            default_level = low if abs(default - low) <= abs(default - high) else high
-            if not country_num.empty:
-                country_levels = _numeric_unique_levels(country_num, max_levels=10)
-                if country_levels:
-                    options = [v for v in all_levels if v in set(country_levels)]
-                    if options:
-                        all_levels = options
-                        if default_level not in all_levels:
-                            default_level = all_levels[0]
-            return st.selectbox(
-                label,
-                options=all_levels,
-                index=all_levels.index(default_level),
-                format_func=lambda x: f"{x:g}",
-                help=help_text,
-                key=key,
-            )
 
         slider_lo, slider_hi = lo, hi
         if context_mode and not country_num.empty:
@@ -1204,9 +1298,9 @@ def values_different(left: Any, right: Any) -> bool:
 
 
 def main() -> None:
-    st.set_page_config(page_title="CAROB What-If Yield Advisor", page_icon=":seedling:", layout="wide")
+    st.set_page_config(page_title="Rice What-If Yield Advisor", page_icon=":seedling:", layout="wide")
 
-    st.title("CAROB What-If Yield Advisor")
+    st.title("Rice What-If Yield Advisor")
     st.caption(
         "Interactive decision support for exploring how management changes can shift expected yield, "
         "with transparent evidence and caveats."
@@ -1231,8 +1325,8 @@ def main() -> None:
         st.error(f"Could not initialize app: {exc}")
         st.info(
             "Run CAROB pipelines first:\n"
-            "1) `carob_feature_prepare.py`\n"
-            "2) `carob_model_compare.py`\n"
+            "- `carob_feature_prepare.py`\n"
+            "- `carob_model_compare.py`\n"
             "Then reopen this app."
         )
         return
@@ -1247,6 +1341,12 @@ def main() -> None:
     modifiable_features: list[str] = bundle["modifiable"]
     context_features: list[str] = bundle["context"]
     model_summary_df: pd.DataFrame = bundle["summary_df"]
+    serving_model_name = str(bundle.get("serving_model_name", "unknown"))
+    serving_model_key = str(bundle.get("serving_model_key", "unknown"))
+    serving_source = str(bundle.get("serving_source", "unknown"))
+    serving_test_r2 = float(bundle.get("serving_test_r2", float("nan")))
+    serving_test_rmse = float(bundle.get("serving_test_rmse", float("nan")))
+    serving_test_mae = float(bundle.get("serving_test_mae", float("nan")))
 
     # Type map is global so control type never flips by country.
     feature_kind_map: dict[str, str] = {f: _feature_kind(modeling[f]) for f in features if f in modeling.columns}
@@ -1260,7 +1360,7 @@ def main() -> None:
     # Sidebar context setup
     # ------------------------------------------------------------------
     with st.sidebar:
-        st.header("1) Set Field Context")
+        st.header("Set Field Context")
         countries = sorted(profiles["country"].dropna().astype(str).unique().tolist())
         if not countries:
             st.error("No countries found in modeling data.")
@@ -1369,7 +1469,7 @@ def main() -> None:
     left_col, right_col = st.columns([1.2, 1.0], gap="large")
 
     with left_col:
-        st.subheader("2) Adjust Management Choices")
+        st.subheader("Adjust Management Choices")
         st.write("Change only actionable levers to test practical what-if scenarios.")
 
         for feature in modifiable_features:
@@ -1421,7 +1521,7 @@ def main() -> None:
             )
 
     with right_col:
-        st.subheader("3) Predicted Yield Impact")
+        st.subheader("Predicted Yield Impact")
         m1, m2, m3 = st.columns(3)
         m1.metric("Expected yield (baseline)", f"{baseline_pred:,.2f}")
         m2.metric("Expected yield (your scenario)", f"{scenario_pred:,.2f}", delta=f"{delta:+,.2f}")
@@ -1454,6 +1554,15 @@ def main() -> None:
     # Model comparison snapshot
     st.divider()
     st.subheader("Current Model Benchmark Snapshot")
+    st.caption(
+        f"Serving model: **{serving_model_name}** (`{serving_model_key}`) "
+        f"from **{serving_source.replace('_', ' ')}**."
+    )
+    m_a, m_b, m_c = st.columns(3)
+    m_a.metric("Serving test R-squared", f"{serving_test_r2:.4f}" if pd.notna(serving_test_r2) else "n/a")
+    m_b.metric("Serving test RMSE", f"{serving_test_rmse:,.2f}" if pd.notna(serving_test_rmse) else "n/a")
+    m_c.metric("Serving test MAE", f"{serving_test_mae:,.2f}" if pd.notna(serving_test_mae) else "n/a")
+
     if model_summary_df.empty:
         st.info("Model comparison summary not available.")
     else:
@@ -1478,12 +1587,10 @@ def main() -> None:
         show_df = show_df.rename(columns=rename_map)
         st.dataframe(show_df.round(4), use_container_width=True, hide_index=True)
 
-    # ------------------------------------------------------------------
-    # Explainability
-    # ------------------------------------------------------------------
     st.divider()
-    st.subheader("4) Why the Model Predicts This")
-    st.caption("Global importance comes from CatBoost SHAP outputs from the interpretability pipeline.")
+    st.divider()
+    st.subheader("Why the Model Predicts This")
+    st.caption("Global importance comes from ExtraTrees SHAP outputs from the interpretability pipeline.")
 
     exp_left, exp_right = st.columns([1.1, 1.0], gap="large")
 
@@ -1492,10 +1599,6 @@ def main() -> None:
             st.image(str(interpretability.shap_img_path), caption="Global driver importance")
         else:
             st.info("Global SHAP chart is unavailable for the selected run tag.")
-
-        if interpretability.top_note:
-            with st.expander("Interpretability note", expanded=False):
-                st.markdown(interpretability.top_note)
 
     with exp_right:
         shap_df = interpretability.shap_df.copy()
@@ -1529,7 +1632,7 @@ def main() -> None:
     # Decision guidance (rules)
     # ------------------------------------------------------------------
     st.divider()
-    st.subheader("5) Decision Guidance and Safeguards")
+    st.subheader("Decision Guidance and Safeguards")
 
     rules_df = interpretability.rules_df.copy()
     using_surrogate = False
@@ -1553,9 +1656,15 @@ def main() -> None:
     else:
         show = rules_df.head(10).copy()
         show["Rule"] = show["rule_conditions"].map(lambda t: format_rule_text(str(t), dd))
+        if "actual_lift_vs_global" in show.columns:
+            show["Yield lift (kg/ha)"] = pd.to_numeric(show["actual_lift_vs_global"], errors="coerce")
+        elif "predicted_lift_vs_global" in show.columns:
+            show["Yield lift (kg/ha)"] = pd.to_numeric(show["predicted_lift_vs_global"], errors="coerce")
+        else:
+            show["Yield lift (kg/ha)"] = float("nan")
 
         # Keep table compact so it fits horizontally without scrolling.
-        table_cols = ["rule_id", "Rule"]
+        table_cols = ["rule_id", "Rule", "Yield lift (kg/ha)"]
         if "confidence_level" in show.columns:
             table_cols.append("confidence_level")
 
@@ -1565,6 +1674,8 @@ def main() -> None:
                 "confidence_level": "Confidence",
             }
         )
+        if "Yield lift (kg/ha)" in table_df.columns:
+            table_df["Yield lift (kg/ha)"] = pd.to_numeric(table_df["Yield lift (kg/ha)"], errors="coerce").round(1)
         st.table(table_df)
 
     st.markdown("**Matched rule segment**")
@@ -1605,7 +1716,7 @@ def main() -> None:
     # ------------------------------------------------------------------
     if analysis_mode == "Scientific":
         st.divider()
-        st.subheader("6) Scientific Evidence (Assumption-Based)")
+        st.subheader("Scientific Evidence (Assumption-Based)")
         st.caption(
             "Shown only in Scientific mode. These estimates are observational and depend on overlap, "
             "balance, and unconfoundedness assumptions."
@@ -1752,6 +1863,25 @@ def main() -> None:
             "Artifact": "Model comparison summary",
             "Path": str(bundle.get("summary_path")) if bundle.get("summary_path") else "missing",
             "Last updated": _fmt_timestamp(bundle.get("summary_path")),
+        },
+        {
+            "Artifact": "Tuning winner selection",
+            "Path": str(bundle.get("tuned_winner_path")) if bundle.get("tuned_winner_path") else "missing",
+            "Last updated": _fmt_timestamp(bundle.get("tuned_winner_path")),
+        },
+        {
+            "Artifact": "Learning curve summary",
+            "Path": str(bundle.get("learning_curve_summary_path"))
+            if bundle.get("learning_curve_summary_path")
+            else "missing",
+            "Last updated": _fmt_timestamp(bundle.get("learning_curve_summary_path")),
+        },
+        {
+            "Artifact": "Learning curve plot",
+            "Path": str(bundle.get("learning_curve_plot_path"))
+            if bundle.get("learning_curve_plot_path")
+            else "missing",
+            "Last updated": _fmt_timestamp(bundle.get("learning_curve_plot_path")),
         },
         {
             "Artifact": "Interpretability run dir",
