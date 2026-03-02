@@ -1,0 +1,8 @@
+rule_id,rule_conditions,features_used,support_count,support_pct,predicted_yield_mean,actual_yield_mean,predicted_lift_vs_global,actual_lift_vs_global
+R1,irrigated > 0.5000 AND N_fertilizer <= 100.0000 AND flooded <= 0.5000 AND P_fertilizer <= 11.0000,N_fertilizer|P_fertilizer|flooded|irrigated,45,0.28125,2778.8972092623203,2377.5522222222226,106.20860532116194,-311.39990277777724
+R2,irrigated > 0.5000 AND N_fertilizer <= 100.0000 AND flooded <= 0.5000 AND P_fertilizer > 11.0000,N_fertilizer|P_fertilizer|flooded|irrigated,43,0.26875,2867.663805854075,3037.7518604651164,194.97520191291642,348.79973546511656
+R3,irrigated > 0.5000 AND N_fertilizer <= 100.0000 AND flooded > 0.5000 AND P_fertilizer > 15.0000,N_fertilizer|P_fertilizer|flooded|irrigated,21,0.13125,3107.0572692189153,3049.234761904762,434.3686652777569,360.28263690476206
+R4,irrigated <= 0.5000,irrigated,20,0.125,1383.4396988663414,1427.306,-1289.248905074817,-1261.6461249999998
+R5,irrigated > 0.5000 AND N_fertilizer <= 100.0000 AND flooded > 0.5000 AND P_fertilizer <= 15.0000,N_fertilizer|P_fertilizer|flooded|irrigated,17,0.10625,3857.498526395348,4645.957058823529,1184.8099224541897,1957.0049338235294
+R6,irrigated > 0.5000 AND N_fertilizer > 100.0000 AND P_fertilizer > 15.0000,N_fertilizer|P_fertilizer|irrigated,7,0.04375,1605.801261600174,1753.2157142857143,-1066.8873423409843,-935.7364107142855
+R7,irrigated > 0.5000 AND N_fertilizer > 100.0000 AND P_fertilizer <= 15.0000,N_fertilizer|P_fertilizer|irrigated,7,0.04375,1362.168307315643,1255.047142857143,-1310.5202966255154,-1433.9049821428569

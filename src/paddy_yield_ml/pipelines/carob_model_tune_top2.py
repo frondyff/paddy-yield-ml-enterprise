@@ -10,6 +10,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import cast
 
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from catboost import CatBoostRegressor
@@ -30,6 +31,7 @@ DEFAULT_SCENARIO = "modifiable_plus_context"
 DEFAULT_MODELS = "extratrees,catboost"
 DEFAULT_TEST_SIZE = 0.2
 DEFAULT_VAL_SIZE = 0.2
+DEFAULT_LEARNING_CURVE_FRACTIONS = "0.2,0.4,0.6,0.8,1.0"
 
 
 @dataclass(frozen=True)
@@ -79,6 +81,31 @@ def parse_models(raw: str) -> list[str]:
     if unsupported:
         raise ValueError(f"Unsupported models for top2 tuner: {unsupported}. Allowed: {sorted(allowed)}")
     return models
+
+
+def parse_fractions(raw: str) -> list[float]:
+    tokens = [x.strip() for x in raw.split(",") if x.strip()]
+    if not tokens:
+        raise ValueError("At least one learning-curve fraction is required.")
+
+    out: list[float] = []
+    seen: set[float] = set()
+    for token in tokens:
+        try:
+            value = float(token)
+        except ValueError as exc:
+            raise ValueError(f"Invalid learning-curve fraction: {token!r}") from exc
+        if value <= 0.0 or value > 1.0:
+            raise ValueError(f"Learning-curve fraction must be in (0, 1], got {value}.")
+        key = round(value, 6)
+        if key not in seen:
+            seen.add(key)
+            out.append(value)
+
+    has_one = any(np.isclose(v, 1.0) for v in out)
+    if not has_one:
+        out.append(1.0)
+    return sorted(out)
 
 
 def sample_grid(grid: list[dict[str, object]], max_size: int, random_state: int) -> list[dict[str, object]]:
@@ -469,6 +496,191 @@ def stability_check(
     return summary
 
 
+def sample_within_trial_fraction_indices(
+    *,
+    groups: pd.Series,
+    fraction: float,
+    random_state: int,
+) -> np.ndarray:
+    g = groups.astype(str).reset_index(drop=True)
+    rng = np.random.default_rng(random_state)
+    selected: list[int] = []
+
+    grouped = g.groupby(g, sort=True).indices
+    for _, idx_list in grouped.items():
+        arr = np.array(sorted(idx_list), dtype=int)
+        if fraction >= 1.0:
+            n_take = len(arr)
+        else:
+            n_take = max(1, int(np.floor(len(arr) * fraction)))
+            n_take = min(n_take, len(arr))
+        rng.shuffle(arr)
+        selected.extend(arr[:n_take].tolist())
+
+    out = np.array(sorted(selected), dtype=int)
+    if len(out) == 0:
+        raise ValueError("Learning-curve sampling produced zero training rows.")
+    return out
+
+
+def run_best_model_learning_curve(
+    *,
+    x_all: pd.DataFrame,
+    y_all: pd.Series,
+    groups_all: pd.Series,
+    best_model_key: str,
+    best_model_label: str,
+    best_params: dict[str, object],
+    fractions: list[float],
+    seeds: list[int],
+    test_size: float,
+    val_size: float,
+    trial_median_impute: bool,
+    out_dir: Path,
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    rows: list[dict[str, object]] = []
+
+    for seed in seeds:
+        split = build_seed_split(
+            x_all=x_all,
+            y_all=y_all,
+            groups_all=groups_all,
+            test_size=test_size,
+            val_size=val_size,
+            seed=int(seed),
+        )
+        x_pool = pd.concat([split.x_train, split.x_validation], axis=0, ignore_index=True)
+        y_pool = pd.concat([split.y_train, split.y_validation], axis=0, ignore_index=True)
+        g_pool = pd.concat([split.groups_train, split.groups_validation], axis=0, ignore_index=True).astype(str)
+
+        for fraction in fractions:
+            sub_idx = sample_within_trial_fraction_indices(
+                groups=g_pool,
+                fraction=float(fraction),
+                random_state=int(seed + int(round(fraction * 1000))),
+            )
+            x_sub = x_pool.iloc[sub_idx].copy()
+            y_sub = y_pool.iloc[sub_idx].copy()
+            g_sub = g_pool.iloc[sub_idx].copy()
+
+            pred, fit_seconds = fit_and_predict(
+                split_seed=int(seed),
+                model_key=best_model_key,
+                params=best_params,
+                x_train=x_sub,
+                y_train=y_sub,
+                x_eval=split.x_test,
+                groups_train=g_sub,
+                groups_eval=split.groups_test,
+                trial_median_impute=trial_median_impute,
+            )
+            metrics = regression_metrics(split.y_test, pred)
+            mean_target = float(split.y_test.mean())
+            nrmse_mean = float(metrics["rmse"] / mean_target) if not np.isclose(mean_target, 0.0) else np.nan
+
+            rows.append(
+                {
+                    "model": best_model_label,
+                    "model_key": best_model_key,
+                    "seed": int(seed),
+                    "train_fraction": float(fraction),
+                    "n_train_used": int(len(sub_idx)),
+                    "n_train_plus_validation_total": int(len(x_pool)),
+                    "n_test": int(len(split.x_test)),
+                    "test_r2": metrics["r2"],
+                    "test_rmse": metrics["rmse"],
+                    "test_mae": metrics["mae"],
+                    "test_nrmse_mean": nrmse_mean,
+                    "fit_seconds": fit_seconds,
+                }
+            )
+
+    metrics_df = (
+        pd.DataFrame(rows)
+        .sort_values(["train_fraction", "seed"], ascending=[True, True])
+        .reset_index(drop=True)
+    )
+    metrics_df.to_csv(out_dir / "learning_curve_best_model_metrics.csv", index=False)
+
+    summary_df = (
+        metrics_df.groupby(["model", "model_key", "train_fraction"], as_index=False)
+        .agg(
+            seeds=("seed", "nunique"),
+            n_train_used_mean=("n_train_used", "mean"),
+            n_train_used_min=("n_train_used", "min"),
+            n_train_used_max=("n_train_used", "max"),
+            test_r2_mean=("test_r2", "mean"),
+            test_r2_std=("test_r2", "std"),
+            test_rmse_mean=("test_rmse", "mean"),
+            test_rmse_std=("test_rmse", "std"),
+            test_mae_mean=("test_mae", "mean"),
+            test_mae_std=("test_mae", "std"),
+            test_nrmse_mean_mean=("test_nrmse_mean", "mean"),
+            test_nrmse_mean_std=("test_nrmse_mean", "std"),
+            fit_seconds_mean=("fit_seconds", "mean"),
+        )
+        .fillna(0.0)
+        .sort_values("train_fraction")
+        .reset_index(drop=True)
+    )
+    summary_df.to_csv(out_dir / "learning_curve_best_model_summary.csv", index=False)
+    return metrics_df, summary_df
+
+
+def save_learning_curve_plot(summary_df: pd.DataFrame, out_path: Path) -> None:
+    if summary_df.empty:
+        return
+
+    x = summary_df["train_fraction"].to_numpy(dtype=float)
+    fig, axes = plt.subplots(nrows=1, ncols=3, figsize=(14, 4.5), constrained_layout=True)
+
+    axes[0].errorbar(
+        x,
+        summary_df["test_r2_mean"].to_numpy(dtype=float),
+        yerr=summary_df["test_r2_std"].to_numpy(dtype=float),
+        marker="o",
+        linewidth=2.0,
+        capsize=3,
+        color="#1f77b4",
+    )
+    axes[0].set_title("Test R2")
+    axes[0].set_xlabel("Train Fraction")
+    axes[0].set_ylabel("R2")
+    axes[0].grid(alpha=0.3)
+
+    axes[1].errorbar(
+        x,
+        summary_df["test_rmse_mean"].to_numpy(dtype=float),
+        yerr=summary_df["test_rmse_std"].to_numpy(dtype=float),
+        marker="o",
+        linewidth=2.0,
+        capsize=3,
+        color="#d62728",
+    )
+    axes[1].set_title("Test RMSE")
+    axes[1].set_xlabel("Train Fraction")
+    axes[1].set_ylabel("RMSE")
+    axes[1].grid(alpha=0.3)
+
+    axes[2].errorbar(
+        x,
+        summary_df["test_nrmse_mean_mean"].to_numpy(dtype=float),
+        yerr=summary_df["test_nrmse_mean_std"].to_numpy(dtype=float),
+        marker="o",
+        linewidth=2.0,
+        capsize=3,
+        color="#2ca02c",
+    )
+    axes[2].set_title("Test NRMSE/Mean")
+    axes[2].set_xlabel("Train Fraction")
+    axes[2].set_ylabel("NRMSE/Mean")
+    axes[2].grid(alpha=0.3)
+
+    fig.suptitle("Best Model Learning Curve", fontsize=12)
+    fig.savefig(out_path, dpi=160)
+    plt.close(fig)
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Tune top-2 CAROB contenders (ExtraTrees + CatBoost) with trial-aware train/validation/test."
@@ -485,6 +697,9 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--trial-median-impute", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--et-coarse-max", type=int, default=42)
     parser.add_argument("--cat-coarse-max", type=int, default=48)
+    parser.add_argument("--learning-curve-fractions", type=str, default=DEFAULT_LEARNING_CURVE_FRACTIONS)
+    parser.add_argument("--learning-curve-seeds", type=str, default="")
+    parser.add_argument("--learning-curve", action=argparse.BooleanOptionalAction, default=True)
     return parser.parse_args()
 
 
@@ -568,6 +783,10 @@ def main() -> None:
     features = cm.filter_available_features(feature_sets[args.scenario], frame)
     models = parse_models(args.models)
     stability_seeds = parse_seeds(args.stability_seeds)
+    learning_curve_fractions = parse_fractions(args.learning_curve_fractions)
+    learning_curve_seeds = (
+        parse_seeds(args.learning_curve_seeds) if str(args.learning_curve_seeds).strip() else stability_seeds
+    )
 
     feature_df = pd.DataFrame(
         [{"scenario": args.scenario, "rank_in_scenario": i, "feature": f} for i, f in enumerate(features, start=1)]
@@ -716,6 +935,40 @@ def main() -> None:
     )
     winner_df.to_csv(out_dir / "model_winners.csv", index=False)
 
+    if not winner_df.empty and bool(args.learning_curve):
+        top = winner_df.iloc[0]
+        best_model_key = str(top["model_key"])
+        best_model_label = str(top["model"])
+        best_params = json.loads(str(top["params_json"]))
+
+        _, learning_summary_df = run_best_model_learning_curve(
+            x_all=x_all,
+            y_all=y_all,
+            groups_all=groups_all,
+            best_model_key=best_model_key,
+            best_model_label=best_model_label,
+            best_params=best_params,
+            fractions=learning_curve_fractions,
+            seeds=learning_curve_seeds,
+            test_size=float(args.test_size),
+            val_size=float(args.val_size),
+            trial_median_impute=bool(args.trial_median_impute),
+            out_dir=out_dir,
+        )
+        save_learning_curve_plot(
+            learning_summary_df,
+            out_dir / "learning_curve_best_model.png",
+        )
+        if not learning_summary_df.empty:
+            endpoint = learning_summary_df.sort_values("train_fraction").iloc[-1]
+            print(
+                "Learning curve (best model): "
+                f"fraction={endpoint['train_fraction']:.2f} "
+                f"| test_r2_mean={endpoint['test_r2_mean']:.4f} "
+                f"| test_rmse_mean={endpoint['test_rmse_mean']:.2f} "
+                f"| test_nrmse_mean_mean={endpoint['test_nrmse_mean_mean']:.4f}"
+            )
+
     lines: list[str] = [
         "# Final Model Decision (Top-2 Contenders Tune)",
         "",
@@ -728,6 +981,7 @@ def main() -> None:
         f"- Primary seed: `{int(args.seed)}`",
         f"- Stability seeds: `{stability_seeds}`",
         f"- Trial-median imputation: `{bool(args.trial_median_impute)}`",
+        f"- Learning-curve enabled: `{bool(args.learning_curve)}`",
         f"- Candidate frame rows: `{len(x_all)}`",
         f"- Features used: `{len(features)}`",
         "",
@@ -749,6 +1003,16 @@ def main() -> None:
                 f"- Params: `{top['params_json']}`",
             ]
         )
+        if bool(args.learning_curve):
+            lines.extend(
+                [
+                    "",
+                    "## Best-Model Learning Curve Artifacts",
+                    "- `learning_curve_best_model_metrics.csv`",
+                    "- `learning_curve_best_model_summary.csv`",
+                    "- `learning_curve_best_model.png`",
+                ]
+            )
     (out_dir / "final_model_decision.md").write_text("\n".join(lines), encoding="utf-8")
 
     print("\nWinner summary (locked test):")

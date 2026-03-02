@@ -1,0 +1,12 @@
+run_tag=rule_aipw_v4_extratrees_shap_only
+interp_dir=outputs\carob_interpretability\iter5_extratrees_shap_only_v1
+interp_primary_model_key=extratrees
+interp_shap_model_key=extratrees
+interp_shap_source=extratrees_treeshap
+seeds=[42, 52, 62]
+primary_statuses=['works_here']
+secondary_statuses=['conflicts_here', 'unstable_or_small_effect']
+pairs_cataloged=9
+pairs_ready=6
+pair_seed_results=18
+scorecard_rows=6
