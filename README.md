@@ -3,7 +3,7 @@
 McGill MMA Enterprise Analytics Group Project
 
 ## Project direction
-This repository now uses CAROB standard version of **Replication Data for: Multi-location screening of rice genotypes for grain and straw P concentrations under different levels of P supply (doi:10.7910/DVN/AMAZXA)**  as the primary case for the decision-support framework.
+This repository now uses CAROB standard version of **Replication Data for: Multi-location screening of rice genotypes for grain and straw P concentrations under different levels of P supply Harvard Dataverse. Version 1.0. (doi:10.7910/DVN/AMAZXA)**  as the primary case for the decision-support framework.
 The former paddy dataset pipelines are kept only as legacy reference and are no longer the core analysis path.
 
 ## Enterprise objective
