@@ -72,6 +72,11 @@ Runner: `scripts/run_carob_model_tune_top2.py`
 - `CatBoost`: `test_R2=0.4792`, `test_RMSE=1002.08`, `test_MAE=740.98`
 
 Operational note:
+- Model metrics from carob_model_compare and carob_model_tune_top2 are not directly apples-to-apples because the
+  objective changed: model_compare selects params on a single validation split (seed 42), while model_tune_top2 selects
+  configs by validation stability across multiple seeds (42/52/62) and then reports locked-test performance; tuning also
+  used a different sampled search space (including explicit max_features options), so a lower seed-42 test score can
+  occur even when the selected config is more robust overall.
 - Models are effectively tied on locked test; `ExtraTrees` is used as primary for alignment with explainability stack.
 
 ### 5.2 Learning Curve Investigation (Best Model Only)
